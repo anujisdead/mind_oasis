@@ -1,0 +1,538 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Mind Oasis — Wellness Dashboard</title>
+
+    <!-- Tailwind CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      // small tailwind cfg
+      tailwind.config = {
+        theme: {
+          extend: {
+            colors: {
+              brand: { DEFAULT: "#6366F1", light: "#A5B4FC", dark: "#4338CA" },
+            },
+          },
+        },
+      }
+    </script>
+
+    <!-- DaisyUI (optional nice components) -->
+    <link href="https://cdn.jsdelivr.net/npm/daisyui@4.12.10/dist/full.css" rel="stylesheet"/>
+
+    <!-- React + ReactDOM + Babel -->
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+    <style>
+      /* extra polish */
+      .glass { background: rgba(255,255,255,0.85); backdrop-filter: blur(6px); }
+      .card-shadow { box-shadow: 0 10px 30px rgba(16,24,40,0.08); }
+      .gauge-needle { transform-origin: 50% 100%; transition: transform 800ms cubic-bezier(.2,.9,.2,1); }
+    </style>
+  </head>
+  <body class="bg-gradient-to-br from-purple-100 via-indigo-100 to-blue-100 min-h-screen antialiased">
+    <div id="root" class="min-h-screen"></div>
+
+    <script type="text/babel">
+    const { useState, useEffect, useRef } = React;
+
+    // ====== CONFIG - replace USER_ID with your test user id from signup ======
+    const API_BASE = "http://localhost:4000/api"; // Adjust if your backend port differs
+    const USER_ID = "68cc352ce3987c7236ec9e2c"; // <-- REPLACE with your actual user id
+
+    // ====== API helpers ======
+    async function api(path, { method = "GET", body = null, hasFile = false } = {}) {
+      const headers = {};
+      if (!hasFile) headers["Content-Type"] = "application/json";
+      if (USER_ID) headers["x-user-id"] = USER_ID;
+      const res = await fetch(`${API_BASE}${path}`, {
+        method,
+        headers,
+        body: hasFile ? body : (body ? JSON.stringify(body) : null)
+      });
+      if (!res.ok) {
+        const text = await res.text();
+        throw new Error(`API ${path} failed: ${res.status} ${text}`);
+      }
+      return res.json();
+    }
+
+    // POST file helper
+    async function apiUpload(path, file) {
+      const fd = new FormData();
+      fd.append("voice", file, file.name || "clip.webm");
+      const headers = { "x-user-id": USER_ID };
+      const res = await fetch(`${API_BASE}${path}`, { method: "POST", headers, body: fd });
+      if (!res.ok) throw new Error("upload failed");
+      return res.json();
+    }
+
+    // ====== UI helpers ======
+    function useInterval(callback, delay) {
+      const savedRef = useRef();
+      useEffect(() => { savedRef.current = callback; }, [callback]);
+      useEffect(() => {
+        if (delay == null) return;
+        const id = setInterval(() => savedRef.current(), delay);
+        return () => clearInterval(id);
+      }, [delay]);
+    }
+
+    // ====== Components ======
+
+    function Header() {
+      return (
+        <header className="py-6">
+          <div className="max-w-4xl mx-auto px-6 flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="text-xl rounded-full w-11 h-11 flex items-center justify-center bg-white glass card-shadow">
+                <span role="img" aria-label="leaf">🌿</span>
+              </div>
+              <h1 className="text-2xl font-extrabold text-brand-dark">Mind Oasis</h1>
+            </div>
+            <div className="text-sm text-gray-600">MVP — demo</div>
+          </div>
+        </header>
+      );
+    }
+
+    // Animated circular gauge (SVG)
+    function Gauge({ score = 50, label = "Medium" }) {
+      const angle = (score / 100) * 240 - 120; // -120..+120 degrees
+      return (
+        <div className="flex items-center justify-center">
+          <div className="relative w-56 h-56">
+            <svg viewBox="0 0 200 200" className="w-full h-full">
+              <defs>
+                <linearGradient id="g1" x1="0" x2="1">
+                  <stop offset="0%" stopColor="#00c2ff" />
+                  <stop offset="100%" stopColor="#6366F1" />
+                </linearGradient>
+              </defs>
+              <circle cx="100" cy="100" r="80" fill="#F8FAFF" stroke="#EEF2FF" strokeWidth="2" />
+              <path d={describeArc(100,100,70,-120, -120 + (240 * score/100))} fill="none" stroke="url(#g1)" strokeWidth="12" strokeLinecap="round" />
+              {/* center */}
+              <text x="100" y="105" textAnchor="middle" fontSize="28" fontWeight="700" fill="#4338CA">{score}</text>
+              <text x="100" y="128" textAnchor="middle" fontSize="12" fill="#6B7280">/100</text>
+            </svg>
+            {/* needle */}
+            <div style={{position:'absolute', left:'50%', top:'50%', transform:'translate(-50%,-50%)'}} >
+              <svg width="120" height="120" viewBox="0 0 100 100" >
+                <g transform={`rotate(${angle},50,50)`}>
+                  <rect x="49.2" y="12" width="1.6" height="40" rx="0.8" fill="#111827" className="gauge-needle" />
+                  <circle cx="50" cy="52" r="6" fill="#111827" />
+                </g>
+              </svg>
+            </div>
+          </div>
+          <div className="ml-6">
+            <div className="text-sm text-gray-500">Risk</div>
+            <div className="text-lg font-semibold" style={{color: score < 40 ? "#ef4444" : score < 65 ? "#f59e0b" : "#10b981"}}>{label}</div>
+          </div>
+        </div>
+      );
+    }
+
+    // Utility to draw arc path (SVG)
+    function polarToCartesian(cx, cy, r, angleDeg) {
+      const angleRad = (angleDeg - 90) * Math.PI / 180.0;
+      return { x: cx + (r * Math.cos(angleRad)), y: cy + (r * Math.sin(angleRad)) };
+    }
+    function describeArc(cx, cy, r, startAngle, endAngle){
+      const start = polarToCartesian(cx, cy, r, endAngle);
+      const end = polarToCartesian(cx, cy, r, startAngle);
+      const largeArcFlag = endAngle - startAngle <= 180 ? "0" : "1";
+      const d = ["M", start.x, start.y, "A", r, r, 0, largeArcFlag, 0, end.x, end.y].join(" ");
+      return d;
+    }
+
+    // Dashboard card
+    function Dashboard({ wellness, refresh }) {
+      return (
+        <div className="glass rounded-2xl p-6 card-shadow">
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="text-lg font-bold text-brand-dark">Your Wellness</h2>
+              <p className="text-sm text-gray-600">A simple, transparent wellness score based on quizzes, check-ins, and voice.</p>
+            </div>
+            <div>
+              <button onClick={refresh} className="btn btn-ghost btn-sm">Refresh</button>
+            </div>
+          </div>
+          <div className="mt-4 flex flex-col md:flex-row md:items-center md:gap-6">
+            <div className="flex-1">
+              <Gauge score={wellness.score} label={wellness.category} />
+            </div>
+            <div className="mt-4 md:mt-0 md:w-64">
+              <div className="bg-white p-4 rounded-lg">
+                <p className="text-xs text-gray-500">Components</p>
+                <ul className="mt-2 text-sm space-y-2">
+                  <li>Quiz Score: <strong>{wellness.components.quizScore}</strong></li>
+                  <li>Text Score: <strong>{wellness.components.textScore}</strong></li>
+                  <li>Voice Score: <strong>{wellness.components.voiceScore}</strong></li>
+                  <li>Engagement: <strong>{wellness.components.engagement}</strong></li>
+                </ul>
+              </div>
+
+              <div className="mt-4">
+                <ProactivePanel score={wellness.score} />
+              </div>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    function ProactivePanel({ score }) {
+      if (score < 40) {
+        return (
+          <div className="p-4 rounded-lg bg-red-50 border border-red-100">
+            <div className="font-semibold text-red-600">High Risk — recommended actions</div>
+            <ul className="mt-2 text-sm">
+              <li>• Consider contacting a trusted person or professional.</li>
+              <li>• Try the grounding exercise below.</li>
+              <li>• If you're in immediate danger, call your local emergency services.</li>
+            </ul>
+          </div>
+        );
+      } else if (score < 65) {
+        return (
+          <div className="p-4 rounded-lg bg-yellow-50 border border-yellow-100">
+            <div className="font-semibold text-yellow-700">Medium — tips</div>
+            <ul className="mt-2 text-sm">
+              <li>• Try a 3-minute guided breathing session.</li>
+              <li>• Do a short walk or stretch.</li>
+              <li>• Journal one positive thing today.</li>
+            </ul>
+          </div>
+        );
+      } else {
+        return (
+          <div className="p-4 rounded-lg bg-green-50 border border-green-100">
+            <div className="font-semibold text-green-700">Low risk — keep it up!</div>
+            <ul className="mt-2 text-sm">
+              <li>• Keep tracking daily check-ins.</li>
+              <li>• Share wellness tips with a friend.</li>
+            </ul>
+          </div>
+        );
+      }
+    }
+
+    // Check-in component
+    function Checkin({ onSaved }) {
+      const [mood, setMood] = useState(7);
+      const [text, setText] = useState("");
+      const [loading, setLoading] = useState(false);
+      const [error, setError] = useState(null);
+
+      async function submit() {
+        setLoading(true); setError(null);
+        try {
+          const data = await api("/checkins", { method: "POST", body: { moodScale: Number(mood), text } });
+          onSaved(data.wellness);
+          setText("");
+        } catch (err) {
+          console.error(err); setError(err.message);
+        } finally { setLoading(false); }
+      }
+
+      return (
+        <div className="glass rounded-2xl p-6 mt-6 card-shadow max-w-4xl mx-auto">
+          <div className="flex items-center justify-between">
+            <h3 className="text-lg font-bold text-brand-dark">Daily Check-in</h3>
+            <div className="text-sm text-gray-500">Quick & private</div>
+          </div>
+          <div className="mt-4">
+            <div className="text-sm text-gray-600">Mood Scale: <strong>{mood}</strong></div>
+            <input type="range" min="0" max="10" value={mood} onChange={e=>setMood(e.target.value)} className="range range-primary w-full" />
+          </div>
+          <textarea value={text} onChange={e=>setText(e.target.value)} placeholder="Write a few words about how you're feeling..." className="textarea textarea-bordered w-full mt-4" rows="4"></textarea>
+          <div className="flex gap-3 mt-4">
+            <button className={"btn btn-primary"} onClick={submit} disabled={loading}>
+              {loading ? "Saving..." : "Save Check-in"}
+            </button>
+            <BreathingButton />
+            <button className="btn btn-ghost" onClick={()=>{ setText(""); setMood(7); }}>Reset</button>
+          </div>
+          {error && <div className="mt-3 text-sm text-red-600">Error: {error}</div>}
+        </div>
+      );
+    }
+
+    // Simple breathing exercise modal trigger
+    function BreathingButton() {
+      const [open, setOpen] = useState(false);
+      return (
+        <>
+          <button className="btn btn-outline" onClick={()=>setOpen(true)}>Breathe (2 min)</button>
+          {open && <BreathingModal onClose={()=>setOpen(false)} />}
+        </>
+      );
+    }
+
+    function BreathingModal({ onClose }) {
+      const [phase, setPhase] = useState(0); // 0: inhale,1:hold,2:exhale
+      const [count, setCount] = useState(0);
+      useEffect(() => {
+        let cancelled = false;
+        async function run() {
+          const pattern = [4000, 4000, 4000]; // ms inhale, hold, exhale
+          while (!cancelled && count < 12) {
+            for (let i=0;i<3 && !cancelled;i++){
+              setPhase(i);
+              await new Promise(r => setTimeout(r, pattern[i]));
+            }
+            setCount(c=>c+1);
+          }
+          if (!cancelled) onClose();
+        }
+        run();
+        return ()=>{ cancelled = true; };
+      }, []);
+      return (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          <div className="absolute inset-0 bg-black/40" onClick={onClose}></div>
+          <div className="bg-white rounded-2xl p-6 z-10 w-80 text-center glass card-shadow">
+            <h3 className="font-bold text-lg">Guided Breathing</h3>
+            <p className="mt-2 text-sm text-gray-600">Follow the rhythm. {count}/12 cycles</p>
+            <div className="mt-4">
+              <div className="w-40 h-40 mx-auto flex items-center justify-center">
+                <div className={"rounded-full " + (phase===0 ? "bg-indigo-300" : phase===1 ? "bg-indigo-500" : "bg-indigo-200")} style={{width: (phase===0?140:phase===1?120:100), height: (phase===0?140:phase===1?120:100), transition: "width 0.8s, height 0.8s"}}></div>
+              </div>
+            </div>
+            <button className="btn btn-ghost mt-4" onClick={onClose}>Stop</button>
+          </div>
+        </div>
+      );
+    }
+
+    // Quiz component
+    function Quiz({ onCompleted }) {
+      const [quiz, setQuiz] = useState(null);
+      const [answers, setAnswers] = useState({});
+      const [loading, setLoading] = useState(false);
+      const [error, setError] = useState(null);
+
+      useEffect(()=> {
+        let cancelled = false;
+        api("/quizzes").then(data => { if (!cancelled) { setQuiz(data[0]); } }).catch(e=>console.error(e));
+        return ()=> cancelled = true;
+      }, []);
+
+      async function submit() {
+        setLoading(true); setError(null);
+        try {
+          const arr = Object.entries(answers).map(([qId, val]) => ({ qId, score: Number(val) }));
+          const res = await api(`/quizzes/${quiz._id}/submit`, { method: "POST", body: { answers: arr } });
+          onCompleted(res.wellness);
+        } catch (err) {
+          setError(err.message);
+        } finally { setLoading(false); }
+      }
+
+      if (!quiz) return null;
+      return (
+        <div className="glass rounded-2xl p-6 mt-6 card-shadow max-w-4xl mx-auto">
+          <h3 className="text-lg font-bold text-brand-dark">{quiz.title}</h3>
+          <p className="text-sm text-gray-500">{quiz.description}</p>
+          <div className="mt-4 space-y-4">
+            {quiz.questions.map(q => (
+              <div key={q.qId} className="bg-white p-3 rounded-lg">
+                <p className="text-sm font-medium">{q.text}</p>
+                {q.type === "scale" ? (
+                  <input type="range" min="0" max={q.maxScore} value={answers[q.qId]||0} onChange={e=>setAnswers({...answers, [q.qId]: e.target.value})} className="range range-primary mt-2 w-full"/>
+                ) : (
+                  <select className="select select-bordered w-full mt-2" value={answers[q.qId]||""} onChange={e=>setAnswers({...answers, [q.qId]: e.target.value})}>
+                    <option value="">Select</option>
+                    {q.options.map((opt, idx) => <option key={idx} value={idx+1}>{opt}</option>)}
+                  </select>
+                )}
+              </div>
+            ))}
+          </div>
+          <div className="flex gap-3 mt-4">
+            <button className="btn btn-primary" onClick={submit} disabled={loading}>{loading ? "Submitting..." : "Submit Quiz"}</button>
+            {error && <div className="text-red-600">{error}</div>}
+          </div>
+        </div>
+      );
+    }
+
+    // Voice Recorder component (uses MediaRecorder)
+    function VoiceRecorder({ onUploaded }) {
+      const [recState, setRecState] = useState("idle"); // idle, recording, uploading
+      const mediaRef = useRef(null);
+      const chunksRef = useRef([]);
+      const [error, setError] = useState(null);
+      const [lastSample, setLastSample] = useState(null);
+
+      async function startRecording() {
+        setError(null);
+        try {
+          const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+          const mr = new MediaRecorder(stream);
+          mediaRef.current = mr;
+          chunksRef.current = [];
+          mr.ondataavailable = (e) => { if (e.data.size > 0) chunksRef.current.push(e.data); };
+          mr.onstop = async () => {
+            const blob = new Blob(chunksRef.current, { type: 'audio/webm' });
+            setLastSample(URL.createObjectURL(blob));
+            setRecState("uploading");
+            try {
+              const file = new File([blob], "sample.webm", { type: 'audio/webm' });
+              const data = await apiUpload("/voice/upload", file);
+              onUploaded(data.wellness);
+            } catch (err) {
+              console.error(err); setError("Upload failed");
+            } finally {
+              setRecState("idle");
+            }
+          };
+          mr.start();
+          setRecState("recording");
+          // auto-stop after 12 seconds
+          setTimeout(()=>{ if (mr.state === "recording") mr.stop(); }, 12000);
+        } catch (err) {
+          setError("Microphone access denied or not available.");
+        }
+      }
+
+      function stopRecordingNow() {
+        if (mediaRef.current && mediaRef.current.state === "recording") mediaRef.current.stop();
+      }
+
+      return (
+        <div className="glass rounded-2xl p-6 mt-6 card-shadow max-w-4xl mx-auto">
+          <h3 className="text-lg font-bold text-brand-dark">Voice Mood (10s)</h3>
+          <p className="text-sm text-gray-500 mt-1">Record a short clip (10–12s). We'll transcribe and infer mood.</p>
+          <div className="mt-4 flex gap-3 items-center">
+            {recState === "idle" && <button className="btn btn-accent" onClick={startRecording}>Record 10s</button>}
+            {recState === "recording" && <button className="btn btn-warning" onClick={stopRecordingNow}>Stop</button>}
+            {recState === "uploading" && <div className="badge badge-info">Uploading...</div>}
+            {error && <div className="text-red-600">{error}</div>}
+          </div>
+          {lastSample && <audio className="mt-4" controls src={lastSample} />}
+        </div>
+      );
+    }
+
+    // History peek (last few check-ins & voice samples)
+    function History() {
+      const [checkins, setCheckins] = useState([]);
+      const [voices, setVoices] = useState([]);
+
+      useEffect(()=> {
+        api("/checkins").then(()=>{/* not implemented list endpoint on backend; skip for now */}).catch(()=>{});
+        // The backend didn't include listing endpoints for voice/checkin history beyond DB; we can query DB via mongosh.
+      }, []);
+
+      return (
+        <div className="glass rounded-2xl p-6 mt-6 card-shadow max-w-4xl mx-auto">
+          <h3 className="text-lg font-bold text-brand-dark">Recent Activity</h3>
+          <p className="text-sm text-gray-500 mt-2">Quick glance (demo only).</p>
+          <div className="mt-4">
+            <div className="text-sm text-gray-600">Check-ins are saved to the server. See backend DB for full history.</div>
+          </div>
+        </div>
+      );
+    }
+
+    // Export / Delete controls
+    function DataControls() {
+      const [msg, setMsg] = useState(null);
+      async function exportData() {
+        setMsg("Exporting...");
+        try {
+          // backend endpoint not implemented in MVP; we simulate
+          // const data = await api("/user/export");
+          setTimeout(()=> setMsg("Export ready. (Simulated)") , 800);
+        } catch (err) {
+          setMsg("Export failed.");
+        }
+      }
+      async function deleteData() {
+        if (!confirm("Delete all your data? This is irreversible.")) return;
+        setMsg("Deleting...");
+        try {
+          // await api("/user/delete", { method: "POST" });
+          setTimeout(()=> setMsg("Deleted (simulated).") , 800);
+        } catch (err) {
+          setMsg("Delete failed.");
+        }
+      }
+      return (
+        <div className="flex gap-3 mt-4">
+          <button className="btn btn-outline" onClick={exportData}>Export data</button>
+          <button className="btn btn-ghost" onClick={deleteData}>Delete data</button>
+          {msg && <div className="text-sm text-gray-600 ml-3">{msg}</div>}
+        </div>
+      );
+    }
+
+    // Footer
+    function Footer() {
+      return (
+        <footer className="mt-12 pb-12">
+          <div className="max-w-4xl mx-auto text-center text-sm text-gray-500">
+            <div>Built for demo: not a substitute for professional care. If you are in crisis, seek immediate help.</div>
+          </div>
+        </footer>
+      );
+    }
+
+    // ====== Root App ======
+    function App() {
+      const [wellness, setWellness] = useState({ score: 50, category: "Medium", components: { quizScore:50, textScore:50, voiceScore:50, engagement: 0 }});
+      const [loading, setLoading] = useState(true);
+      const [error, setError] = useState(null);
+
+      async function refresh() {
+        setLoading(true); setError(null);
+        try {
+          const data = await api("/checkins/score");
+          setWellness(data);
+        } catch (err) {
+          setError(err.message);
+        } finally { setLoading(false); }
+      }
+
+      useEffect(()=> { refresh(); }, []);
+
+      return (
+        <div>
+          <Header />
+          <main className="max-w-4xl mx-auto px-6">
+            <div>
+              <Dashboard wellness={wellness} refresh={refresh} />
+              <Checkin onSaved={(w)=> setWellness(w)} />
+              <Quiz onCompleted={(w)=> setWellness(w)} />
+              <VoiceRecorder onUploaded={(w)=> setWellness(w)} />
+              <div className="mt-6 glass rounded-2xl p-6 card-shadow">
+                <h3 className="text-lg font-bold text-brand-dark">Quick Actions</h3>
+                <p className="text-sm text-gray-600 mt-2">Try one of these proactive features to feel better fast.</p>
+                <div className="mt-4 flex flex-wrap gap-3">
+                  <button className="btn btn-outline">5-min Meditation</button>
+                  <button className="btn btn-outline">Sleep Tips</button>
+                  <button className="btn btn-outline">Talk to Peer</button>
+                </div>
+                <DataControls />
+              </div>
+              <History />
+              <Footer />
+            </div>
+          </main>
+        </div>
+      );
+    }
+
+    // ====== Render ======
+    ReactDOM.createRoot(document.getElementById("root")).render(<App />);
+
+    </script>
+  </body>
+</html>
