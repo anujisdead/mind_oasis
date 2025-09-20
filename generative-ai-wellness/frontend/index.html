@@ -18,79 +18,91 @@
 
   <style>
     :root{
-      --primary:#7c3aed; /* purple-600 */
-      --primary-2:#6d28d9;
-      --muted:#6b7280;
-      --bg:#0f172a; /* dark gradient below for header */
-      --card-bg:#fff;
-      --soft:#f7f7fb;
-      --radius:14px;
+      --primary:#6366f1; /* indigo-500 */
+      --primary-2:#4f46e5; /* indigo-600 */
+      --muted:#6b7280; /* gray-500 */
+      --bg:#f8fafc; /* slate-50 */
+      --card-bg:#ffffff; /* white */
+      --soft:#f0f4f8; /* blue-gray-100 */
+      --radius:10px;
+      --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+      --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+      --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
     }
     html,body,#root{height:100%}
     body{
       margin:0;font-family:Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial;
-      background: linear-gradient(180deg,#f7f8fc 0%, #fbfbff 100%);
-      color:#0f172a;
+      background:var(--bg);
+      color:#1f2937; /* gray-800 */
     }
 
     /* Layout */
     .app-shell{display:flex;height:100vh;overflow:hidden}
     .sidebar{
-      width:260px;background:linear-gradient(180deg,#ffffff,#fbfbff);border-right:1px solid rgba(15,23,42,0.04);
-      padding:28px;display:flex;flex-direction:column;gap:12px;
+      width:260px;background:var(--card-bg);border-right:1px solid var(--soft);
+      padding:24px;display:flex;flex-direction:column;gap:16px;
+      box-shadow:var(--shadow-sm);
     }
     .brand{display:flex;align-items:center;gap:12px}
     .brand .logo{
-      width:44px;height:44px;border-radius:10px;background:linear-gradient(135deg,var(--primary),var(--primary-2));
-      display:flex;align-items:center;justify-content:center;color:white;font-weight:700;box-shadow:0 6px 20px rgba(111,66,193,0.16);
+      width:40px;height:40px;border-radius:var(--radius);background:linear-gradient(135deg,var(--primary),var(--primary-2));
+      display:flex;align-items:center;justify-content:center;color:white;font-weight:700;box-shadow:var(--shadow-md);
     }
-    .nav-list{margin-top:18px;display:flex;flex-direction:column;gap:6px}
+    .nav-list{margin-top:20px;display:flex;flex-direction:column;gap:8px}
     .nav-item{
-      display:flex;align-items:center;gap:12px;padding:10px 12px;border-radius:12px;color:#374151;font-weight:600;
-      cursor:pointer;transition:all .18s ease;
+      display:flex;align-items:center;gap:12px;padding:10px 14px;border-radius:var(--radius);color:#4b5563;font-weight:600;
+      cursor:pointer;transition:all .2s ease-in-out;
     }
-    .nav-item:hover{background:rgba(124,58,237,0.06);transform:translateX(6px)}
-    .nav-item.active{background:linear-gradient(90deg,rgba(124,58,237,0.08), rgba(99,102,241,0.03));color:var(--primary)}
+    .nav-item:hover{background:rgba(99,102,241,0.08);color:var(--primary);transform:translateX(4px)}
+    .nav-item.active{background:linear-gradient(90deg,rgba(99,102,241,0.1), rgba(99,102,241,0.03));color:var(--primary);box-shadow:var(--shadow-sm)}
     .content-area{flex:1;display:flex;flex-direction:column;overflow:hidden}
 
-    header.app-header{height:76px;display:flex;align-items:center;justify-content:space-between;padding:18px 28px;border-bottom:1px solid rgba(15,23,42,0.04);background:linear-gradient(90deg,rgba(255,255,255,0.5),rgba(255,255,255,0.5))}
+    header.app-header{height:72px;display:flex;align-items:center;justify-content:space-between;padding:18px 28px;border-bottom:1px solid var(--soft);background:var(--card-bg);box-shadow:var(--shadow-sm)}
     .header-left{display:flex;gap:18px;align-items:center}
-    .search-input{min-width:320px;padding:10px 14px;border-radius:12px;border:1px solid #e6e9f2;background:white;box-shadow:0 6px 18px rgba(15,23,42,0.03)}
+    .search-input{min-width:300px;padding:10px 16px;border-radius:var(--radius);border:1px solid var(--soft);background:white;box-shadow:var(--shadow-sm);font-size:15px}
     .header-right{display:flex;gap:12px;align-items:center}
 
-    .body-wrap{padding:28px;overflow:auto;height:calc(100vh - 76px)}
+    .body-wrap{padding:28px;overflow:auto;height:calc(100vh - 72px);background:linear-gradient(180deg,var(--bg) 0%, #eef2f6 100%)}
 
     /* Card */
     .card{
-      background:var(--card-bg);border-radius:14px;padding:18px;box-shadow:0 8px 30px rgba(15,23,42,0.04);
+      background:var(--card-bg);border-radius:var(--radius);padding:20px;box-shadow:var(--shadow-md);
+      transition:all .2s ease-in-out;
     }
-    .card-hover:hover{transform:translateY(-6px);box-shadow:0 18px 50px rgba(15,23,42,0.06)}
+    .card-hover:hover{transform:translateY(-4px);box-shadow:var(--shadow-lg)}
 
     /* Buttons / Inputs */
-    .btn-primary{background:linear-gradient(90deg,var(--primary),var(--primary-2));color:white;padding:10px 14px;border-radius:12px;border:none;font-weight:600;box-shadow:0 8px 24px rgba(99,102,241,0.12);cursor:pointer}
-    .btn-ghost{background:transparent;border:1px solid rgba(15,23,42,0.06);padding:8px 12px;border-radius:10px;cursor:pointer}
-    .input-styled{width:100%;padding:12px;border-radius:10px;border:1px solid #e6e9f2;background:white}
+    .btn-primary{background:linear-gradient(90deg,var(--primary),var(--primary-2));color:white;padding:12px 20px;border-radius:var(--radius);border:none;font-weight:600;box-shadow:var(--shadow-md);cursor:pointer;transition:all .2s ease-in-out}
+    .btn-primary:hover{opacity:0.9;box-shadow:var(--shadow-lg)}
+    .btn-ghost{background:var(--soft);border:none;padding:10px 16px;border-radius:var(--radius);cursor:pointer;font-weight:600;color:#374151;transition:all .2s ease-in-out}
+    .btn-ghost:hover{background:#dae1e7;color:var(--primary)}
+    .input-styled{width:100%;padding:12px 16px;border-radius:var(--radius);border:1px solid var(--soft);background:var(--card-bg);font-size:15px;color:#1f2937}
+    .input-styled:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 3px rgba(99,102,241,0.2)}
 
     /* Community feed specifics */
-    .post-card{display:block;margin-bottom:18px;padding:16px;border-radius:12px; background:linear-gradient(180deg,#fff,#fbfbff);box-shadow:0 6px 20px rgba(15,23,42,0.03)}
-    .post-meta{display:flex;justify-content:space-between;align-items:center;gap:12px}
-    .avatar{width:40px;height:40px;border-radius:10px;background:linear-gradient(135deg,#f97316,#fb923c);display:flex;align-items:center;justify-content:center;color:white;font-weight:700}
-    .reactions{display:flex;gap:8px;margin-top:12px}
-    .react-btn{border:none;background:rgba(15,23,42,0.03);padding:6px 10px;border-radius:999px;cursor:pointer;font-weight:600;display:flex;gap:8px;align-items:center}
-    .react-btn:hover{transform:translateY(-3px)}
+    .post-card{display:block;margin-bottom:16px;padding:18px;border-radius:var(--radius); background:var(--card-bg);box-shadow:var(--shadow-sm);transition:all .2s ease-in-out}
+    .post-card:hover{transform:translateY(-3px);box-shadow:var(--shadow-md)}
+    .post-meta{display:flex;justify-content:"",alignItems:"center",gap:12px}
+    .avatar{width:36px;height:36px;border-radius:var(--radius);background:linear-gradient(135deg,#f97316,#fb923c);display:flex;align-items:center;justify-content:center;color:white;font-weight:700;font-size:14px}
+    .reactions{display:flex;gap:10px;margin-top:14px}
+    .react-btn{border:none;background:var(--soft);padding:8px 12px;border-radius:999px;cursor:pointer;font-weight:600;display:flex;gap:6px;align-items:center;color:#4b5563;transition:all .2s ease-in-out}
+    .react-btn:hover{background:#dae1e7;transform:translateY(-2px)}
 
     /* smaller helpers */
     .muted{color:#6b7280}
-    .title-lg{font-size:18px;font-weight:700}
+    .title-lg{font-size:20px;font-weight:700;color:#1f2937}
     .small{font-size:13px}
-    .grid-2{display:grid;grid-template-columns:1fr 420px;gap:20px}
-    .stack{display:flex;flex-direction:column;gap:12px}
-    .pill{background:rgba(15,23,42,0.03);padding:6px 10px;border-radius:999px;font-weight:600}
+    .grid-2{display:grid;grid-template-columns:1fr 380px;gap:24px}
+    .stack{display:flex;flex-direction:column;gap:16px}
+    .pill{background:var(--soft);padding:6px 10px;border-radius:999px;font-weight:600;color:#4b5563}
 
     /* responsive */
     @media (max-width:1000px){
       .sidebar{display:none}
       .grid-2{grid-template-columns:1fr}
+      .body-wrap{padding:18px}
+      header.app-header{padding:14px 18px}
+      .search-input{min-width:unset;width:100%}
     }
   </style>
 </head>
@@ -153,7 +165,7 @@
             <input className="input-styled" placeholder="Email" value={email} onChange={e=>setEmail(e.target.value)} />
             <input className="input-styled" placeholder="Password" type="password" value={pass} onChange={e=>setPass(e.target.value)} />
             {err && <div style={{color:"#ef4444"}}>{err}</div>}
-            <button className="btn-primary button-primary" type="submit">{mode==="login" ? "Login" : "Create account"}</button>
+            <button className="btn-primary" type="submit">{mode==="login" ? "Login" : "Create account"}</button>
           </form>
 
           <div style={{marginTop:12, textAlign:"center"}}>
@@ -216,16 +228,16 @@
         {/* Body */}
         <div className="body-wrap">
           {/* Wellness cards row */}
-          <div style={{display:"flex",gap:20,marginBottom:20}}>
-            <div className="card" style={{flex:"0 0 160px",textAlign:"center"}}>
-              <div style={{fontWeight:800,fontSize:20}}>
+          <div style={{display:"flex",gap:"20px",marginBottom:"20px"}}>
+            <div className="card" style={{flex:"0 0 160px",textAlign:"center",padding:"18px"}}>
+              <div style={{fontWeight:800,fontSize:"22px",color:"var(--primary)"}}>
                 {wellness?.score ?? "—"}/100
               </div>
-              <div className="muted small">{wellness?.category ?? "—"}</div>
+              <div className="muted small" style={{marginTop:"4px"}}>{wellness?.category ?? "—"}</div>
             </div>
-            <div className="card" style={{flex:"0 0 160px",textAlign:"center"}}>
-              <div style={{fontWeight:800,fontSize:20}}>🔥 {streak ?? 0}</div>
-              <div className="muted small">Day streak</div>
+            <div className="card" style={{flex:"0 0 160px",textAlign:"center",padding:"18px"}}>
+              <div style={{fontWeight:800,fontSize:"22px",color:"#fbbf24"}}>🔥 {streak ?? 0}</div>
+              <div className="muted small" style={{marginTop:"4px"}}>Day streak</div>
             </div>
           </div>
 
@@ -241,23 +253,23 @@
   // ---- Dashboard ----
   function DashboardPage({}) {
     return (
-      <div className="grid-2" style={{alignItems:"start",gap:20}}>
+      <div className="grid-2" style={{alignItems:"start",gap:24}}>
         <div className="stack">
           <div className="card">
             <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
               <div>
-                <div style={{fontSize:18,fontWeight:800}}>Daily Check-in</div>
-                <div className="muted small">Take a short check-in to see your wellness score</div>
+                <div className="title-lg">Daily Check-in</div>
+                <div className="muted small" style={{marginTop:4}}>Take a short check-in to see your wellness score</div>
               </div>
               <div>
-                <button className="btn-primary button-primary">Take today's quiz</button>
+                <button className="btn-primary">Take today's quiz</button>
               </div>
             </div>
-            <div style={{marginTop:14,display:"flex",gap:12,alignItems:"center"}}>
-              <div style={{width:72,height:72,borderRadius:12,background:"linear-gradient(135deg,#f59e0b,#fb7185)",display:"flex",alignItems:"center",justifyContent:"center",color:"white",fontWeight:800,fontSize:18}}>😊</div>
+            <div style={{marginTop:16,display:"flex",gap:16,alignItems:"center"}}>
+              <div style={{width:64,height:64,borderRadius:12,background:"linear-gradient(135deg,#f59e0b,#fb7185)",display:"flex",alignItems:"center",justifyContent:"center",color:"white",fontWeight:800,fontSize:24}}>😊</div>
               <div>
-                <div style={{fontWeight:700}}>How are you feeling today?</div>
-                <div className="muted">Quick prompts and supportive suggestions</div>
+                <div style={{fontWeight:700,fontSize:"16px"}}>How are you feeling today?</div>
+                <div className="muted small" style={{marginTop:2}}>Quick prompts and supportive suggestions</div>
               </div>
             </div>
           </div>
@@ -266,22 +278,22 @@
             <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
               <div>
                 <div className="title-lg">Your Journal</div>
-                <div className="muted small">Recent thoughts & entries</div>
+                <div className="muted small" style={{marginTop:4}}>Recent thoughts & entries</div>
               </div>
               <div>
                 <button className="btn-ghost">View all</button>
               </div>
             </div>
-            <div style={{marginTop:12}}>
+            <div style={{marginTop:16}}>
               <div className="muted">No recent journal entries yet.</div>
             </div>
           </div>
 
           <div className="card">
             <div className="title-lg">Community Highlights</div>
-            <div className="muted small" style={{marginTop:8}}>Trending supportive posts</div>
-            <div style={{marginTop:12}}>
-              <div className="post-card card">
+            <div className="muted small" style={{marginTop:4}}>Trending supportive posts</div>
+            <div style={{marginTop:16}}>
+              <div className="post-card card-hover">
                 <div style={{display:"flex",gap:12,alignItems:"center"}}>
                   <div className="avatar">A</div>
                   <div>
@@ -299,17 +311,17 @@
           </div>
         </div>
 
-        <aside className="stack" style={{position:"sticky",top:30}}>
+        <aside className="stack" style={{position:"sticky",top:"28px"}}>
           <div className="card">
-            <div style={{fontWeight:800}}>Quick Actions</div>
-            <div style={{marginTop:12,display:"flex",flexDirection:"column",gap:8}}>
-              <button className="button-primary">Start a voice check-in</button>
+            <div className="title-lg">Quick Actions</div>
+            <div style={{marginTop:12,display:"flex",flexDirection:"column",gap:10}}>
+              <button className="btn-primary">Start a voice check-in</button>
               <button className="btn-ghost">Write a quick journal</button>
             </div>
           </div>
 
           <div className="card">
-            <div style={{fontWeight:800}}>Streak & Tips</div>
+            <div className="title-lg">Streak & Tips</div>
             <div style={{marginTop:10}} className="muted">Keep your streak by logging in daily — small consistent actions help.</div>
           </div>
         </aside>
@@ -333,23 +345,23 @@
           <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
             <div>
               <div className="title-lg">Journal</div>
-              <div className="muted small">Write freely — entries are private.</div>
+              <div className="muted small" style={{marginTop:4}}>Write freely — entries are private.</div>
             </div>
             <div><button className="btn-ghost">Export</button></div>
           </div>
 
-          <div style={{marginTop:12}}>
-            <textarea className="input-styled" rows="5" placeholder="Write your thoughts..." value={body} onChange={e=>setBody(e.target.value)}></textarea>
+          <div style={{marginTop:16}}>
+            <textarea className="input-styled" rows="6" placeholder="Write your thoughts..." value={body} onChange={e=>setBody(e.target.value)}></textarea>
             <div style={{display:"flex",justifyContent:"flex-end",marginTop:10}}>
-              <button className="button-primary" onClick={save}>Save entry</button>
+              <button className="btn-primary" onClick={save}>Save entry</button>
             </div>
           </div>
         </div>
 
         <div>
-          <div className="muted" style={{marginBottom:8}}>Past entries</div>
-          {entries.length===0 ? <div className="card muted">No entries yet.</div> : entries.map(en=>(
-            <div key={en._id} className="card">
+          <div className="muted" style={{marginBottom:10,fontSize:14,fontWeight:600}}>Past entries</div>
+          {entries.length===0 ? <div className="card muted" style={{padding:20}}>No entries yet.</div> : entries.map(en=>(
+            <div key={en._id} className="card" style={{marginBottom:12}}>
               <div style={{display:"flex",justifyContent:"space-between"}}>
                 <div className="muted small">{new Date(en.createdAt).toLocaleString()}</div>
                 <div style={{fontWeight:700}}></div>
@@ -410,10 +422,10 @@
           <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
             <div>
               <div className="title-lg">Daily Quiz</div>
-              <div className="muted small">Short adaptive check-in (6 q)</div>
+              <div className="muted small" style={{marginTop:4}}>Short adaptive check-in (6 q)</div>
             </div>
             <div>
-              <button className="button-primary" onClick={start}>Start Today's Quiz</button>
+              <button className="btn-primary" onClick={start}>Start Today's Quiz</button>
             </div>
           </div>
         </div>
@@ -428,39 +440,39 @@
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
           <div>
             <div className="title-lg">Daily Quiz</div>
-            <div className="muted small">Progress {progress}/{session.maxSteps || 6}</div>
+            <div className="muted small" style={{marginTop:4}}>Progress {progress}/{session.maxSteps || 6}</div>
           </div>
           <div style={{width:220}}>
-            <div style={{height:10,background:"rgba(15,23,42,0.06)",borderRadius:999,overflow:"hidden"}}>
+            <div style={{height:10,background:"var(--soft)",borderRadius:999,overflow:"hidden"}}>
               <div style={{width: (progress/ (session.maxSteps||6))*100 + "%", height:"100%", background:"linear-gradient(90deg,var(--primary),var(--primary-2))"}}></div>
             </div>
           </div>
         </div>
 
-        <div style={{marginTop:12}}>
-          <div className="muted small">Previous answers</div>
-          <div style={{marginTop:8}}>
+        <div style={{marginTop:16}}>
+          <div className="muted small" style={{marginBottom:8,fontSize:14,fontWeight:600}}>Previous answers</div>
+          <div className="stack">
             {session.questions.map((q,i)=>(
-              <div key={q.qId} style={{padding:10, borderRadius:10, background:"rgba(15,23,42,0.02)", marginBottom:8}}>
+              <div key={q.qId} className="card" style={{padding:16,background:"var(--bg)",boxShadow:"none",border:"1px solid var(--soft)"}}>
                 <div style={{fontWeight:700}}>Q{i+1}: {q.text}</div>
-                <div className="muted small">{q.answer ? "→ " + q.answer : "—"}</div>
+                <div className="muted small" style={{marginTop:4}}>{q.answer ? "→ " + q.answer : "—"}</div>
               </div>
             ))}
           </div>
         </div>
 
         {!session.isComplete && current && (
-          <div style={{marginTop:12}}>
-            <input className="input-styled" placeholder="Your answer..." value={input} onChange={e=>setInput(e.target.value)} />
+          <div style={{marginTop:20}}>
+            <textarea className="input-styled" placeholder="Your answer..." value={input} onChange={e=>setInput(e.target.value)} rows="3"></textarea>
             <div style={{display:"flex",gap:10,marginTop:12}}>
-              <button className="button-primary" onClick={sendAnswer} disabled={loading || !input}>{loading? "Loading..." : "Next"}</button>
+              <button className="btn-primary" onClick={sendAnswer} disabled={loading || !input}>{loading? "Loading..." : "Next"}</button>
               <button className="btn-ghost" onClick={()=>{ setSession(null); setInput(""); }}>Cancel</button>
             </div>
           </div>
         )}
 
         {session.isComplete && (
-          <div style={{marginTop:12,color:"#059669",fontWeight:700}}>🎉 Quiz Completed — check your dashboard for results.</div>
+          <div style={{marginTop:16,color:"#059669",fontWeight:700,background:"#d1fae5",padding:"12px 18px",borderRadius:"var(--radius)",textAlign:"center"}}>🎉 Quiz Completed — check your dashboard for results.</div>
         )}
       </div>
     );
@@ -521,25 +533,25 @@
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
           <div>
             <div className="title-lg">Speak Out</div>
-            <div className="muted small">Record and get a short, caring suggestion</div>
+            <div className="muted small" style={{marginTop:4}}>Record and get a short, caring suggestion</div>
           </div>
           <div>
-            {!recording ? <button className="button-primary" onClick={startRecording}>Start Recording</button> : <button className="btn-ghost" onClick={stopRecording}>Stop</button>}
+            {!recording ? <button className="btn-primary" onClick={startRecording}>Start Recording</button> : <button className="btn-ghost" onClick={stopRecording}>Stop</button>}
           </div>
         </div>
 
-        <div style={{marginTop:12}}>
-          {loading && <div className="muted">Processing — hang on...</div>}
-          {audioURL && <audio src={audioURL} controls style={{width:"100%",marginTop:12}}></audio>}
+        <div style={{marginTop:16}}>
+          {loading && <div className="muted" style={{textAlign:"center",padding:"20px"}}>Processing — hang on...</div>}
+          {audioURL && <audio src={audioURL} controls style={{width:"100%",marginTop:16}}></audio>}
           {transcript && (
-            <div style={{marginTop:12}} className="card">
-              <div style={{fontWeight:700}}>Transcript</div>
+            <div style={{marginTop:16}} className="card">
+              <div style={{fontWeight:700,fontSize:16,color:"#1f2937"}}>Transcript</div>
               <div className="muted small" style={{marginTop:8}}>{transcript}</div>
             </div>
           )}
           {suggestion && (
-            <div style={{marginTop:12}} className="card">
-              <div style={{fontWeight:800,color:"#065f46"}}>Suggestion</div>
+            <div style={{marginTop:16}} className="card">
+              <div style={{fontWeight:800,color:"#065f46",fontSize:16}}>Suggestion</div>
               <div style={{marginTop:8}}>{suggestion}</div>
             </div>
           )}
@@ -593,26 +605,26 @@
 
   return (
     <div>
-      <div className="card" style={{marginBottom:14}}>
+      <div className="card" style={{marginBottom:16}}>
         <div style={{display:"flex",justifyContent:"space-between"}}>
           <div>
             <div className="title-lg">Community</div>
-            <div className="muted small">Share experiences & support each other</div>
+            <div className="muted small" style={{marginTop:4}}>Share experiences & support each other</div>
           </div>
           <div><button className="btn-ghost">Guidelines</button></div>
         </div>
 
-        <div style={{marginTop:12}}>
+        <div style={{marginTop:16}}>
           <textarea 
             className="input-styled" 
-            rows="3" 
+            rows="4" 
             placeholder="Share something supportive or ask a question..." 
             value={body} 
             onChange={e=>setBody(e.target.value)}
           ></textarea>
-          <div style={{display:"flex",justifyContent:"flex-end",marginTop:8}}>
+          <div style={{display:"flex",justifyContent:"flex-end",marginTop:10}}>
             <button 
-              className="button-primary" 
+              className="btn-primary" 
               onClick={submit} 
               disabled={loading}
             >
@@ -624,10 +636,10 @@
 
       <div>
         {posts.length === 0 ? (
-          <div className="muted">No posts yet — be the first to share.</div>
+          <div className="muted card" style={{padding:20}}>No posts yet — be the first to share.</div>
         ) : (
           posts.map(p=>(
-            <article key={p._id} className="post-card">
+            <article key={p._id} className="post-card card-hover">
               <div className="post-meta">
                 <div style={{display:"flex",gap:12,alignItems:"center"}}>
                   <div className="avatar" aria-hidden>
@@ -641,13 +653,13 @@
                   </div>
                 </div>
 
-                <div style={{display:"flex",gap:8,alignItems:"center"}}>
+                <div style={{display:"flex",gap:10,alignItems:"center"}}>
                   <span className="pill small muted">{p.reactions?.likes || 0} ❤️</span>
                   <span className="pill small muted">{p.reactions?.upvotes || 0} ▲</span>
                 </div>
               </div>
 
-              <div style={{marginTop:10}} className="post-body">{p.text}</div> 
+              <div style={{marginTop:12}} className="post-body">{p.text}</div> 
               {/* ✅ use p.text because backend stores "text" */}
 
               <div className="reactions">
