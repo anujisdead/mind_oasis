@@ -8,6 +8,15 @@ const UserSchema = new mongoose.Schema({
     dailyReminderTime: { type: String, default: "09:00" },
     shareAnonymized: { type: Boolean, default: true }
   },
+  lastLoginAt: { type: Date, default: null },
+  streakCount: { type: Number, default: 0 },
+  quizHistory: [   // ✅ NEW
+    {
+      date: { type: Date, default: Date.now },
+      score: Number,
+      category: String
+    }
+  ],
   createdAt: { type: Date, default: Date.now }
 });
 

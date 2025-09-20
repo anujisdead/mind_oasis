@@ -1,82 +1,153 @@
 const express = require('express');
 const router = express.Router();
-const Quiz = require('../models/Quiz');
-const QuizResult = require('../models/QuizResult');
-const { computeWellnessForUser } = require('../utils/wellness');
+const QuizSession = require('../models/QuizSession');
+const User = require('../models/User');
+const auth = require('../middleware/auth');
+const { openai } = require('../services/openaiService');
 
-// middleware to mock auth for MVP: expects `x-user-id` header OR JWT in Authorization
-async function getUserId(req) {
-  if (req.headers['x-user-id']) return req.headers['x-user-id'];
-  // if you later wire JWT, decode it here
-  return null;
+// ✅ Simple keyword-based crisis detection
+function detectCrisis(answerText = "") {
+  const redFlags = [
+    "suicide",
+    "kill myself",
+    "end my life",
+    "leave this body",
+    "die",
+    "ending life",
+    "no reason to live",
+    "can't go on",
+    "take my life"
+  ];
+  return redFlags.some(flag => answerText.toLowerCase().includes(flag));
 }
 
-router.get('/', async (req, res) => {
+// ✅ Start a new quiz session
+router.post('/start', auth, async (req, res) => {
   try {
-    let quizzes = await Quiz.find({});
-    // seed a sample quiz if none
-    if (!quizzes || quizzes.length === 0) {
-      const sample = await Quiz.create({
-        title: "Mood Check (MVP)",
-        description: "Short mood quiz",
-        questions: [
-          { qId: "q1", text: "How often have you felt down recently?", type: "scale", maxScore: 5 },
-          { qId: "q2", text: "Have you been sleeping well?", type: "scale", maxScore: 5 },
-          { qId: "q3", text: "Choose the statement that fits best", type: "mcq", options: ["I feel fine", "Somewhat off", "Very low"], maxScore: 5 }
-        ]
-      });
-      quizzes = [sample];
+    const session = new QuizSession({
+      userId: req.userId,
+      questions: [
+        {
+          qId: "q1",
+          text: "How are you feeling right now?",
+          type: "text",
+          options: []
+        }
+      ]
+    });
+    await session.save();
+    res.json(session);
+  } catch (err) {
+    console.error("Start quiz error:", err);
+    res.status(500).json({ error: "Failed to start quiz" });
+  }
+});
+
+// ✅ Answer current question and generate next
+router.post('/:id/answer', auth, async (req, res) => {
+  try {
+    const { answer } = req.body;
+    const session = await QuizSession.findById(req.params.id);
+    if (!session || session.isComplete) {
+      return res.status(404).json({ error: "Session not found" });
     }
-    res.json(quizzes);
+
+    // save answer
+    session.questions[session.currentStep].answer = answer;
+    session.currentStep++;
+
+    // 🚨 Crisis detection
+    if (detectCrisis(answer)) {
+      session.isComplete = true;
+      await session.save();
+
+      return res.json({
+        crisis: true,
+        message: "⚠️ It looks like you may be in crisis. You're not alone — please reach out immediately.",
+        resources: [
+          { name: "India: Vandrevala Foundation Helpline", phone: "1860 266 2345 / 1800 233 3330" },
+          { name: "India: iCall (TISS)", phone: "+91 9152987821" },
+          { name: "Worldwide: Find a helpline", url: "https://findahelpline.com" }
+        ],
+        wellness: { score: 0, category: "Crisis" },
+        session
+      });
+    }
+
+    // ✅ Check if quiz is complete
+    if (session.currentStep >= session.maxSteps) {
+      session.isComplete = true;
+      await session.save();
+
+      // compute wellness score
+      const moodWords = session.questions.map(q => `${q.text}: ${q.answer}`).join("\n");
+      const prompt = `Analyze this youth check-in:\n${moodWords}\n\nGive JSON with keys: score (0-100) and category (Low, Medium, High).`;
+
+      let wellness = { score: 50, category: "Medium" };
+      try {
+        const aiRes = await openai.chat.completions.create({
+          model: "gpt-4o-mini",
+          messages: [{ role: "user", content: prompt }],
+          response_format: { type: "json_object" }
+        });
+        wellness = JSON.parse(aiRes.choices[0].message.content);
+      } catch (err) {
+        console.error("Wellness parse error:", err);
+      }
+
+      // ✅ Save quiz result into user history
+      try {
+        const user = await User.findById(session.userId);
+        if (user) {
+          user.quizHistory.push({
+            date: new Date(),
+            score: wellness.score,
+            category: wellness.category
+          });
+          if (user.quizHistory.length > 7) {
+            user.quizHistory = user.quizHistory.slice(-7);
+          }
+          await user.save();
+        }
+      } catch (err) {
+        console.error("Error saving quiz history:", err);
+      }
+
+      return res.json({ session, wellness });
+    }
+
+    // ✅ Otherwise, generate next supportive question
+    const prevAnswers = session.questions
+      .map(q => `${q.text}: ${q.answer || ""}`)
+      .join("\n");
+
+    const prompt = `Ongoing wellness check-in:\n${prevAnswers}\n\nGenerate the next supportive question (just the text).`;
+
+    let nextQText = "What’s on your mind right now?";
+    try {
+      const aiRes = await openai.chat.completions.create({
+        model: "gpt-4o-mini",
+        messages: [{ role: "user", content: prompt }]
+      });
+      nextQText = aiRes.choices[0].message.content.trim();
+    } catch (err) {
+      console.error("AI question gen error:", err);
+    }
+
+    const nextQ = {
+      qId: "q" + (session.currentStep + 1),
+      text: nextQText,
+      type: "text",
+      options: []
+    };
+
+    session.questions.push(nextQ);
+    await session.save();
+
+    res.json(session);
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: "failed to load quizzes" });
-  }
-});
-
-router.get('/:id', async (req, res) => {
-  try {
-    const quiz = await Quiz.findById(req.params.id);
-    if (!quiz) return res.status(404).json({ error: "not found" });
-    res.json(quiz);
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: "failed" });
-  }
-});
-
-/**
- * Submit quiz answers
- * Expects { answers: [{ qId, score }] }
- */
-router.post('/:id/submit', async (req, res) => {
-  try {
-    const userId = await getUserId(req);
-    if (!userId) return res.status(401).json({ error: "missing user id header x-user-id for MVP" });
-
-    const quiz = await Quiz.findById(req.params.id);
-    if (!quiz) return res.status(404).json({ error: "quiz not found" });
-    const answers = req.body.answers || [];
-
-    // compute total & maxTotal by question weights
-    let total = 0, maxTotal = 0;
-    quiz.questions.forEach(q => {
-      const a = answers.find(x => x.qId === q.qId);
-      const s = a && typeof a.score === 'number' ? a.score : 0;
-      total += s * (q.weight || 1);
-      maxTotal += (q.maxScore || 5) * (q.weight || 1);
-    });
-
-    const normalized = maxTotal > 0 ? Math.round((total / maxTotal) * 100) : 50;
-    const result = await QuizResult.create({
-      userId, quizId: quiz._id, answers, totalScore: normalized
-    });
-
-    const wellness = await computeWellnessForUser(userId);
-    res.json({ quizScore: normalized, quizResultId: result._id, wellness });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: "submit failed" });
+    console.error("Answer quiz error:", err);
+    res.status(500).json({ error: "Failed to answer question" });
   }
 });
 

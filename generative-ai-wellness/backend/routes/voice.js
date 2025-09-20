@@ -4,9 +4,7 @@ const multer = require('multer');
 const path = require('path');
 const fs = require('fs-extra');
 
-const { transcribeAudio, analyzeTextMood } = require('../services/openaiService');
-const VoiceSample = require('../models/VoiceSample');
-const { computeWellnessForUser } = require('../utils/wellness');
+const { transcribeAudio, generateDailySuggestion } = require('../services/openaiService');
 
 const uploadDir = path.join(__dirname, '..', 'uploads');
 fs.ensureDirSync(uploadDir);
@@ -23,60 +21,38 @@ const storage = multer.diskStorage({
 });
 const upload = multer({ storage, limits: { fileSize: 10 * 1024 * 1024 } }); // 10MB
 
-async function getUserId(req) {
-  if (req.headers['x-user-id']) return req.headers['x-user-id'];
-  return null;
-}
-
-router.post('/upload', upload.single('voice'), async (req, res) => {
+router.post('/speak', upload.single('voice'), async (req, res) => {
   try {
-    const userId = await getUserId(req);
-    if (!userId) {
-      // remove uploaded file
-      if (req.file && req.file.path) await fs.remove(req.file.path);
-      return res.status(401).json({ error: "missing user id header x-user-id for MVP" });
-    }
-    if (!req.file) return res.status(400).json({ error: "no file uploaded. send form field 'voice'." });
+    if (!req.file) return res.status(400).json({ error: "No file uploaded" });
 
     const filepath = req.file.path;
-    // Transcribe
+
+    // 1. Transcribe voice
     let transcript = "";
     try {
       transcript = await transcribeAudio(filepath);
     } catch (err) {
-      console.error("transcription failed:", err);
-      transcript = "";
+      console.error("Transcription failed:", err);
     }
 
-    // Analyze transcript for mood
-    let mood = { label: "neutral", confidence: 0.5, rationale: "" };
+    // 2. Generate supportive suggestion
+    let suggestion = "";
     if (transcript && transcript.length > 0) {
       try {
-        mood = await analyzeTextMood(transcript);
+        suggestion = await generateDailySuggestion(transcript);
       } catch (err) {
-        console.warn("analyzeTextMood failed:", err);
+        console.error("Suggestion generation failed:", err);
+        suggestion = "Take a short break and do something kind for yourself.";
       }
     }
 
-    // Save sample
-    const sample = await VoiceSample.create({
-      userId,
-      filename: path.basename(filepath),
-      s3Url: null,
-      durationSec: null,
-      transcript,
-      inferredLabel: mood.label,
-      inferenceConfidence: Number(mood.confidence) || 0.5,
-      inferenceDetails: { rationale: mood.rationale }
-    });
+    // 3. Cleanup temp file
+    await fs.remove(filepath);
 
-    // Recompute wellness
-    const wellness = await computeWellnessForUser(userId);
-
-    res.json({ sample, wellness });
+    res.json({ transcript, suggestion });
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: "voice upload failed" });
+    console.error("Speak Out failed:", err);
+    res.status(500).json({ error: "Speak Out failed" });
   }
 });
 

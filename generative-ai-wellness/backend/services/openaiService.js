@@ -1,29 +1,24 @@
 const fs = require('fs');
 const OpenAI = require('openai');
-const path = require('path');
 
-const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
 /**
- * Transcribe an audio file using OpenAI Whisper (or hosted transcription).
- * @param {string} filePath - local path to audio file
- * @returns {Promise<string>} transcript
+ * Transcribe an audio file using OpenAI Whisper.
+ * @param {string} filePath
+ * @returns {Promise<string>}
  */
 async function transcribeAudio(filePath) {
   const fileStream = fs.createReadStream(filePath);
-  // Node SDK uses client.audio.transcriptions.create
-  const resp = await client.audio.transcriptions.create({
+  const resp = await openai.audio.transcriptions.create({
     file: fileStream,
-    model: "gpt-4o-transcribe" in client ? "whisper-1" : "whisper-1", // keep whisper-1
-    // note: depending on the client version your environment may require model: "whisper-1"
+    model: "whisper-1"
   });
-  if (!resp || !resp.text) return "";
-  return resp.text;
+  return resp?.text || "";
 }
 
 /**
  * Analyze text mood & return structured info.
- * We'll instruct the model to respond with JSON for easy parsing.
  * @param {string} text
  * @returns {Promise<{label:string, confidence:number, rationale:string}>}
  */
@@ -35,7 +30,7 @@ async function analyzeTextMood(text) {
     { role: "user", content: `Text: """${text}"""` }
   ];
 
-  const completion = await client.chat.completions.create({
+  const completion = await openai.chat.completions.create({
     model: "gpt-4o-mini",
     messages,
     max_tokens: 200,
@@ -43,31 +38,88 @@ async function analyzeTextMood(text) {
   });
 
   const content = completion.choices?.[0]?.message?.content ?? "";
-  // Try to parse JSON from content. Be forgiving.
   let json = { label: "neutral", confidence: 0.5, rationale: "" };
+
   try {
-    // find first "{" ... "}" block
     const start = content.indexOf("{");
     const end = content.lastIndexOf("}");
     if (start !== -1 && end !== -1) {
       const block = content.slice(start, end + 1);
       json = JSON.parse(block);
     } else {
-      // fallback: try to parse whole content
       json = JSON.parse(content);
     }
   } catch (err) {
-    // if parse fails, attempt simple heuristic
     json.rationale = content.slice(0, 300);
   }
-  // Ensure keys exist and normalize
+
   json.label = json.label || "neutral";
   json.confidence = Number(json.confidence) || 0.5;
   json.rationale = json.rationale || "";
   return json;
 }
 
+/**
+ * Generate a short adaptive quiz using OpenAI.
+ * @param {string} context
+ * @returns {Promise<{title:string, description:string, questions:any[]}>}
+ */
+async function generateQuizWithOpenAI(context = "general wellness") {
+  const prompt = `Generate a supportive 6-question adaptive mental wellness quiz.
+Context: ${context}.
+The quiz should be conversational, each next question can depend on the previous answer.
+Return valid JSON with keys: title, description, questions.
+Each question: { "qId": "q1", "text": "...", "type": "text|scale|mcq", "options": ["opt1","opt2"] }`;
+
+  const res = await openai.chat.completions.create({
+    model: "gpt-4o-mini",
+    messages: [{ role: "user", content: prompt }]
+  });
+
+  let data = { title: "Daily Wellness Quiz", description: "Check-in", questions: [] };
+  try {
+    data = JSON.parse(res.choices[0].message.content);
+  } catch (err) {
+    console.error("Quiz parse error:", err);
+  }
+
+  return data;
+}
+/**
+ * Generate a supportive daily suggestion from transcribed voice input.
+ * @param {string} text
+ * @returns {Promise<string>}
+ */
+async function generateDailySuggestion(text) {
+  const systemPrompt = `You are a caring wellness companion. 
+The user will speak freely about their day. 
+Your job:
+1. Understand their mood.
+2. Suggest 1–2 small, actionable, supportive things they can do to enhance their day. 
+3. Keep it short (2-3 sentences max), positive, and empathetic.`;
+
+  const messages = [
+    { role: "system", content: systemPrompt },
+    { role: "user", content: `User said: """${text}"""` }
+  ];
+
+  const completion = await openai.chat.completions.create({
+    model: "gpt-4o-mini",
+    messages,
+    max_tokens: 150,
+    temperature: 0.7
+  });
+
+  return completion.choices?.[0]?.message?.content?.trim() || "Try to take a deep breath and do something small that makes you happy today.";
+}
+
 module.exports = {
+  openai,
   transcribeAudio,
-  analyzeTextMood
+  analyzeTextMood,
+  generateQuizWithOpenAI,
+  generateDailySuggestion   // ✅ export new function
 };
+
+
+
