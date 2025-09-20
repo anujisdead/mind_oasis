@@ -7,23 +7,44 @@ const auth = require('../middleware/auth');
 router.post('/', auth, async (req, res) => {
   try {
     const { title = "", body, moodScale = null } = req.body;
-    if (!body || body.trim().length === 0) return res.status(400).json({ error: "body required" });
-    const entry = await Journal.create({ userId: req.userId, title, body, moodScale });
-    res.json({ entry });
+
+    // 🔒 Validation
+    if (!body || body.trim().length === 0) {
+      return res.status(400).json({ error: "Journal body is required" });
+    }
+
+    // ✅ Create entry in DB
+    const entry = await Journal.create({
+      userId: req.userId,   // comes from auth middleware
+      title,
+      body,
+      moodScale,
+    });
+
+    return res.json({ success: true, entry });
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: "failed to save journal" });
+    console.error("Journal save failed:", err); // 🔍 Log full error for debugging
+    return res.status(500).json({
+      error: "Failed to save journal",
+      details: err.message, // send reason back to frontend
+    });
   }
 });
 
 // List last N journals
 router.get('/', auth, async (req, res) => {
   try {
-    const q = await Journal.find({ userId: req.userId }).sort({ createdAt: -1 }).limit(20);
-    res.json(q);
+    const journals = await Journal.find({ userId: req.userId })
+      .sort({ createdAt: -1 })
+      .limit(20);
+
+    return res.json(journals);
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: "failed to load journals" });
+    console.error("Journal load failed:", err);
+    return res.status(500).json({
+      error: "Failed to load journals",
+      details: err.message,
+    });
   }
 });
 

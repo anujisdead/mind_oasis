@@ -2,184 +2,359 @@
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <title>Mind Oasis — Dashboard</title>
+  <title>Mind Oasis — Polished UI</title>
 
-  <!-- Tailwind + DaisyUI -->
+  <!-- Tailwind (for quick base utilities) -->
   <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- Daisy UI only for baseline components (optional) -->
   <link href="https://cdn.jsdelivr.net/npm/daisyui@4.12.10/dist/full.css" rel="stylesheet"/>
 
-  <!-- React + Babel -->
+  <!-- Heroicons (inline usage via SVGs included) -->
+  <!-- React + Babel (browser) -->
   <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
   <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 
   <style>
-    :root {
-      --primary-color: #6366f1;
-      --primary-hover: #4f46e5;
-      --bg-light: #F3F4F6;
-      --card-bg: #FFFFFF;
-      --card-shadow: 0 6px 20px rgba(0, 0, 0, 0.06);
-      --border-radius: 14px;
-      --transition-fast: 0.2s ease-in-out;
+    :root{
+      --primary:#7c3aed; /* purple-600 */
+      --primary-2:#6d28d9;
+      --muted:#6b7280;
+      --bg:#0f172a; /* dark gradient below for header */
+      --card-bg:#fff;
+      --soft:#f7f7fb;
+      --radius:14px;
+    }
+    html,body,#root{height:100%}
+    body{
+      margin:0;font-family:Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial;
+      background: linear-gradient(180deg,#f7f8fc 0%, #fbfbff 100%);
+      color:#0f172a;
     }
 
-    body { font-family: Inter, system-ui, sans-serif; background: var(--bg-light); color: #1F2937; }
+    /* Layout */
+    .app-shell{display:flex;height:100vh;overflow:hidden}
+    .sidebar{
+      width:260px;background:linear-gradient(180deg,#ffffff,#fbfbff);border-right:1px solid rgba(15,23,42,0.04);
+      padding:28px;display:flex;flex-direction:column;gap:12px;
+    }
+    .brand{display:flex;align-items:center;gap:12px}
+    .brand .logo{
+      width:44px;height:44px;border-radius:10px;background:linear-gradient(135deg,var(--primary),var(--primary-2));
+      display:flex;align-items:center;justify-content:center;color:white;font-weight:700;box-shadow:0 6px 20px rgba(111,66,193,0.16);
+    }
+    .nav-list{margin-top:18px;display:flex;flex-direction:column;gap:6px}
+    .nav-item{
+      display:flex;align-items:center;gap:12px;padding:10px 12px;border-radius:12px;color:#374151;font-weight:600;
+      cursor:pointer;transition:all .18s ease;
+    }
+    .nav-item:hover{background:rgba(124,58,237,0.06);transform:translateX(6px)}
+    .nav-item.active{background:linear-gradient(90deg,rgba(124,58,237,0.08), rgba(99,102,241,0.03));color:var(--primary)}
+    .content-area{flex:1;display:flex;flex-direction:column;overflow:hidden}
 
-    .sidebar { width: 240px; background:white; border-right:1px solid #eee; }
-    .sidebar a { padding:12px 20px; margin-bottom:8px; font-weight:500; display:flex; align-items:center; gap:10px; border-radius:var(--border-radius); color:#4B5563; transition:background var(--transition-fast); }
-    .sidebar a.active, .sidebar a:hover { background:#EEF2FF; color:var(--primary-color); }
+    header.app-header{height:76px;display:flex;align-items:center;justify-content:space-between;padding:18px 28px;border-bottom:1px solid rgba(15,23,42,0.04);background:linear-gradient(90deg,rgba(255,255,255,0.5),rgba(255,255,255,0.5))}
+    .header-left{display:flex;gap:18px;align-items:center}
+    .search-input{min-width:320px;padding:10px 14px;border-radius:12px;border:1px solid #e6e9f2;background:white;box-shadow:0 6px 18px rgba(15,23,42,0.03)}
+    .header-right{display:flex;gap:12px;align-items:center}
 
-    .card { background:var(--card-bg); border-radius:var(--border-radius); padding:20px; box-shadow:var(--card-shadow); transition:transform var(--transition-fast), box-shadow var(--transition-fast); }
-    .card:hover { transform: translateY(-2px); box-shadow: 0 10px 25px rgba(0,0,0,0.1); }
+    .body-wrap{padding:28px;overflow:auto;height:calc(100vh - 76px)}
 
-    .muted { color:#6b7280; font-size:0.9rem; }
+    /* Card */
+    .card{
+      background:var(--card-bg);border-radius:14px;padding:18px;box-shadow:0 8px 30px rgba(15,23,42,0.04);
+    }
+    .card-hover:hover{transform:translateY(-6px);box-shadow:0 18px 50px rgba(15,23,42,0.06)}
 
-    .button-primary { background: var(--primary-color); color:white; padding:0.75rem 1.5rem; border-radius:var(--border-radius); border:none; cursor:pointer; transition: background var(--transition-fast), box-shadow var(--transition-fast); box-shadow:0 4px 10px rgba(0,0,0,0.08); }
-    .button-primary:hover { background: var(--primary-hover); box-shadow:0 6px 16px rgba(0,0,0,0.12); }
+    /* Buttons / Inputs */
+    .btn-primary{background:linear-gradient(90deg,var(--primary),var(--primary-2));color:white;padding:10px 14px;border-radius:12px;border:none;font-weight:600;box-shadow:0 8px 24px rgba(99,102,241,0.12);cursor:pointer}
+    .btn-ghost{background:transparent;border:1px solid rgba(15,23,42,0.06);padding:8px 12px;border-radius:10px;cursor:pointer}
+    .input-styled{width:100%;padding:12px;border-radius:10px;border:1px solid #e6e9f2;background:white}
 
-    .input-styled { width:100%; padding:0.75rem; border:1px solid #D1D5DB; border-radius:var(--border-radius); transition:border var(--transition-fast), box-shadow var(--transition-fast); }
-    .input-styled:focus { outline:none; border-color:var(--primary-color); box-shadow:0 0 0 4px rgba(99,102,241,0.2); }
+    /* Community feed specifics */
+    .post-card{display:block;margin-bottom:18px;padding:16px;border-radius:12px; background:linear-gradient(180deg,#fff,#fbfbff);box-shadow:0 6px 20px rgba(15,23,42,0.03)}
+    .post-meta{display:flex;justify-content:space-between;align-items:center;gap:12px}
+    .avatar{width:40px;height:40px;border-radius:10px;background:linear-gradient(135deg,#f97316,#fb923c);display:flex;align-items:center;justify-content:center;color:white;font-weight:700}
+    .reactions{display:flex;gap:8px;margin-top:12px}
+    .react-btn{border:none;background:rgba(15,23,42,0.03);padding:6px 10px;border-radius:999px;cursor:pointer;font-weight:600;display:flex;gap:8px;align-items:center}
+    .react-btn:hover{transform:translateY(-3px)}
 
-    .post-card { margin-bottom: 24px; }
-    .post-header { display:flex; align-items:center; justify-content:space-between; }
-    .post-body { margin-top:12px; line-height:1.5; }
+    /* smaller helpers */
+    .muted{color:#6b7280}
+    .title-lg{font-size:18px;font-weight:700}
+    .small{font-size:13px}
+    .grid-2{display:grid;grid-template-columns:1fr 420px;gap:20px}
+    .stack{display:flex;flex-direction:column;gap:12px}
+    .pill{background:rgba(15,23,42,0.03);padding:6px 10px;border-radius:999px;font-weight:600}
 
-    .react-btn { background:none; border:none; cursor:pointer; font-size:1rem; display:inline-flex; align-items:center; gap:4px; transition:color var(--transition-fast); }
-    .react-btn:hover { color: var(--primary-color); }
+    /* responsive */
+    @media (max-width:1000px){
+      .sidebar{display:none}
+      .grid-2{grid-template-columns:1fr}
+    }
   </style>
 </head>
 <body>
-  <div id="root" class="h-screen flex"></div>
+  <div id="root" class="app-shell"></div>
 
   <script type="text/babel">
-  const { useState, useEffect } = React;
-  const API = "http://localhost:4000/api";
+  const { useState, useEffect, useRef } = React;
+  const API = "https://mind-oasis.onrender.com/api"; // change if needed
 
+  // ---- helper: auth token + api wrapper ----
   function getToken(){ return localStorage.getItem("moi_token"); }
-  function setToken(t){ t?localStorage.setItem("moi_token",t):localStorage.removeItem("moi_token"); }
-  async function api(path,{method="GET",body=null}={}) {
-    const headers = {}; if(getToken()) headers.Authorization="Bearer "+getToken();
-    if(body) headers["Content-Type"]="application/json";
-    const res=await fetch(API+path,{method,headers,body:body?JSON.stringify(body):null});
-    if(!res.ok) throw new Error(await res.text());
-    return res.json();
-  }
+  function setToken(t){ if(t) localStorage.setItem("moi_token", t); else localStorage.removeItem("moi_token"); }
+  async function api(path, {method="GET", body=null}={}) {
+  const headers = {}; 
+  if (getToken()) headers.Authorization = "Bearer " + getToken();  // ✅ ensure token sent
+  if (body) headers["Content-Type"] = "application/json";
+  const res = await fetch(API+path, { method, headers, body: body ? JSON.stringify(body) : null });
+  if (!res.ok) throw new Error(await res.text());
+  return res.json();
+}
 
-  function Login({onLogin}){
-    const [email,setEmail]=useState(""),[pass,setPass]=useState(""),[mode,setMode]=useState("login"),[name,setName]=useState(""),[err,setErr]=useState(null);
+
+  // ---- Login component ----
+  function Login({onLogin}) {
+    const [mode,setMode] = useState("login");
+    const [email,setEmail] = useState("");
+    const [pass,setPass] = useState("");
+    const [name,setName] = useState("");
+    const [err,setErr] = useState("");
+
     async function submit(e){
-      e.preventDefault(); setErr(null);
+      e.preventDefault();
+      setErr("");
       try{
-        const res=await fetch(API+"/auth/"+(mode==="login"?"login":"signup"),{
-          method:"POST", headers:{"Content-Type":"application/json"},
-          body:JSON.stringify({email,password:pass,name})
-        });
-        const data=await res.json(); if(data.error) throw new Error(data.error);
-        setToken(data.token); onLogin(data.user);
-      }catch(err){setErr(err.message);}
+        const url = "/auth/" + (mode === "login" ? "login" : "signup");
+        const res = await fetch(API + url, { method: "POST", headers: {"Content-Type":"application/json"}, body: JSON.stringify({ email, password: pass, name })});
+        const data = await res.json();
+        if(data.error) throw new Error(data.error);
+        setToken(data.token);
+        onLogin(data.user);
+      } catch (err) {
+        setErr(err.message || "Login failed");
+      }
     }
-    return(
-      <div className="m-auto max-w-md card">
-        <h2 className="text-2xl font-bold mb-3">Mind Oasis</h2>
-        <form onSubmit={submit} className="space-y-3">
-          {mode==="signup"&&<input className="input-styled" placeholder="Name" value={name} onChange={e=>setName(e.target.value)}/>}
-          <input className="input-styled" placeholder="Email" value={email} onChange={e=>setEmail(e.target.value)}/>
-          <input type="password" className="input-styled" placeholder="Password" value={pass} onChange={e=>setPass(e.target.value)}/>
-          {err&&<div className="text-red-600">{err}</div>}
-          <button className="button-primary w-full">{mode==="login"?"Login":"Sign up"}</button>
-        </form>
-        <button className="mt-2 w-full text-sm text-gray-500" onClick={()=>setMode(mode==="login"?"signup":"login")}>
-          {mode==="login"?"Create account":"Already have an account?"}
-        </button>
+
+    return (
+      <div style={{margin:"auto", width:420}}>
+        <div className="card" style={{padding:28}}>
+          <div style={{display:"flex",alignItems:"center",gap:12,marginBottom:14}}>
+            <div style={{width:48,height:48,borderRadius:12,background:"linear-gradient(135deg,var(--primary),var(--primary-2))",color:"white",display:"flex",alignItems:"center",justifyContent:"center",fontWeight:800}}>MO</div>
+            <div>
+              <div style={{fontWeight:800,fontSize:18}}>Mind Oasis</div>
+              <div className="muted small">Kind, gentle mental wellness for youth</div>
+            </div>
+          </div>
+
+          <form onSubmit={submit} className="stack">
+            {mode === "signup" && <input className="input-styled" placeholder="Full name" value={name} onChange={e=>setName(e.target.value)} />}
+            <input className="input-styled" placeholder="Email" value={email} onChange={e=>setEmail(e.target.value)} />
+            <input className="input-styled" placeholder="Password" type="password" value={pass} onChange={e=>setPass(e.target.value)} />
+            {err && <div style={{color:"#ef4444"}}>{err}</div>}
+            <button className="btn-primary button-primary" type="submit">{mode==="login" ? "Login" : "Create account"}</button>
+          </form>
+
+          <div style={{marginTop:12, textAlign:"center"}}>
+            <button className="btn-ghost" onClick={()=>setMode(mode==="login"?"signup":"login")}>{mode==="login"? "Create account" : "Have an account? Login"}</button>
+          </div>
+        </div>
       </div>
     );
   }
 
-  function Layout({children,onLogout,active,setActive,wellness,streak}){
-    const navItems=[
-      {id:"dashboard",label:"Dashboard"}, {id:"journal",label:"Journal"},
-      {id:"quiz",label:"Quiz"}, {id:"voice",label:"Speak Out"},
-      {id:"community",label:"Community"}, {id:"settings",label:"Settings"}
-    ];
-    return(
-      <>
-      <aside className="sidebar p-4">
-        <h1 className="text-xl font-bold mb-6">🌿 Mind Oasis</h1>
-        {navItems.map(it=>(
-          <a key={it.id} href="#" className={active===it.id?"active":""} onClick={()=>setActive(it.id)}>{it.label}</a>
-        ))}
-        <button className="mt-8 text-gray-500" onClick={onLogout}>Logout</button>
-      </aside>
-      <main className="flex-1 flex flex-col">
-        <header className="flex justify-between items-center p-4 border-b bg-white">
-          <div className="text-lg font-semibold">{navItems.find(n=>n.id===active)?.label}</div>
-          <div className="flex gap-4">
-            <div className="card flex items-center gap-2">
-              <div className="font-bold">{wellness?.score ?? "—"}/100</div>
-              <div className="muted">{wellness?.category}</div>
+  // ---- Layout ----
+  function Layout({children, active, setActive, wellness, streak, onLogout}) {
+  const nav = [
+    {id:"dashboard",label:"Dashboard"},
+    {id:"journal",label:"Journal"},
+    {id:"quiz",label:"Quiz"},
+    {id:"voice",label:"Speak Out"},
+    {id:"community",label:"Community"},
+    {id:"settings",label:"Settings"}
+  ];
+
+  return (
+    <div className="app-shell">
+      {/* Sidebar */}
+      <aside className="sidebar">
+        <div className="brand">
+          <div className="logo">MO</div>
+          <div>
+            <div style={{fontWeight:800}}>Mind Oasis</div>
+            <div className="muted small">gentle support</div>
+          </div>
+        </div>
+
+        <nav className="nav-list" style={{marginTop:14}}>
+          {nav.map(n=>(
+            <div 
+              key={n.id} 
+              className={"nav-item " + (active===n.id ? "active" : "")} 
+              onClick={()=>setActive(n.id)}
+            >
+              {n.label}
             </div>
-            <div className="card flex items-center gap-2">
-              <span>🔥</span>
+          ))}
+        </nav>
+
+        <div style={{marginTop:"auto"}}>
+          <button className="btn-ghost w-full" onClick={onLogout}>Logout</button>
+        </div>
+      </aside>
+
+      {/* Main content */}
+      <main className="content-area">
+        {/* Header */}
+        <header className="app-header">
+          <div style={{fontSize:18,fontWeight:800}}>
+            {nav.find(x=>x.id===active)?.label}
+          </div>
+        </header>
+
+        {/* Body */}
+        <div className="body-wrap">
+          {/* Wellness cards row */}
+          <div style={{display:"flex",gap:20,marginBottom:20}}>
+            <div className="card" style={{flex:"0 0 160px",textAlign:"center"}}>
+              <div style={{fontWeight:800,fontSize:20}}>
+                {wellness?.score ?? "—"}/100
+              </div>
+              <div className="muted small">{wellness?.category ?? "—"}</div>
+            </div>
+            <div className="card" style={{flex:"0 0 160px",textAlign:"center"}}>
+              <div style={{fontWeight:800,fontSize:20}}>🔥 {streak ?? 0}</div>
+              <div className="muted small">Day streak</div>
+            </div>
+          </div>
+
+          {/* Active page content */}
+          {children}
+        </div>
+      </main>
+    </div>
+  );
+}
+
+
+  // ---- Dashboard ----
+  function DashboardPage({}) {
+    return (
+      <div className="grid-2" style={{alignItems:"start",gap:20}}>
+        <div className="stack">
+          <div className="card">
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
               <div>
-                <div className="font-bold">{streak??0}</div>
-                <div className="muted text-sm">Day streak</div>
+                <div style={{fontSize:18,fontWeight:800}}>Daily Check-in</div>
+                <div className="muted small">Take a short check-in to see your wellness score</div>
+              </div>
+              <div>
+                <button className="btn-primary button-primary">Take today's quiz</button>
+              </div>
+            </div>
+            <div style={{marginTop:14,display:"flex",gap:12,alignItems:"center"}}>
+              <div style={{width:72,height:72,borderRadius:12,background:"linear-gradient(135deg,#f59e0b,#fb7185)",display:"flex",alignItems:"center",justifyContent:"center",color:"white",fontWeight:800,fontSize:18}}>😊</div>
+              <div>
+                <div style={{fontWeight:700}}>How are you feeling today?</div>
+                <div className="muted">Quick prompts and supportive suggestions</div>
               </div>
             </div>
           </div>
-        </header>
-        <div className="flex-1 p-6 overflow-y-auto bg-[#f7f7fb]">{children}</div>
-      </main>
-      </>
+
+          <div className="card">
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+              <div>
+                <div className="title-lg">Your Journal</div>
+                <div className="muted small">Recent thoughts & entries</div>
+              </div>
+              <div>
+                <button className="btn-ghost">View all</button>
+              </div>
+            </div>
+            <div style={{marginTop:12}}>
+              <div className="muted">No recent journal entries yet.</div>
+            </div>
+          </div>
+
+          <div className="card">
+            <div className="title-lg">Community Highlights</div>
+            <div className="muted small" style={{marginTop:8}}>Trending supportive posts</div>
+            <div style={{marginTop:12}}>
+              <div className="post-card card">
+                <div style={{display:"flex",gap:12,alignItems:"center"}}>
+                  <div className="avatar">A</div>
+                  <div>
+                    <div style={{fontWeight:700}}>Alex</div>
+                    <div className="muted small">Shared 2 hours ago</div>
+                  </div>
+                </div>
+                <div style={{marginTop:10}}>I took a walk today and it helped a lot. Sharing in case it helps someone else.</div>
+                <div className="reactions">
+                  <button className="react-btn">❤️ 12</button>
+                  <button className="react-btn">🔼 4</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <aside className="stack" style={{position:"sticky",top:30}}>
+          <div className="card">
+            <div style={{fontWeight:800}}>Quick Actions</div>
+            <div style={{marginTop:12,display:"flex",flexDirection:"column",gap:8}}>
+              <button className="button-primary">Start a voice check-in</button>
+              <button className="btn-ghost">Write a quick journal</button>
+            </div>
+          </div>
+
+          <div className="card">
+            <div style={{fontWeight:800}}>Streak & Tips</div>
+            <div style={{marginTop:10}} className="muted">Keep your streak by logging in daily — small consistent actions help.</div>
+          </div>
+        </aside>
+      </div>
     );
   }
 
-  function CommunityPage(){
-    const [body,setBody]=useState(""),[posts,setPosts]=useState([]),[loading,setLoading]=useState(false);
-
-    async function load(){ try{setPosts(await api("/community"));}catch(err){console.error(err);} }
-    useEffect(()=>{load();},[]);
-
-    async function submit(){
+  // ---- Journal (functional) ----
+  function JournalPage(){
+    const [body,setBody] = useState("");
+    const [entries,setEntries] = useState([]);
+    async function load(){ try{ const res = await api("/journal"); setEntries(res); }catch(err){ console.error(err); } }
+    useEffect(()=>{ load(); },[]);
+    async function save(){
       if(!body.trim()) return;
-      setLoading(true);
-      try{
-        await api("/community",{method:"POST",body:{body}});
-        setBody(""); load();
-      }catch(err){alert("Failed to post: "+err);}
-      setLoading(false);
+      try{ await api("/journal",{method:"POST",body:{body}}); setBody(""); load(); }catch(err){ alert("Save failed: "+err.message); }
     }
+    return (
+      <div className="stack">
+        <div className="card">
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+            <div>
+              <div className="title-lg">Journal</div>
+              <div className="muted small">Write freely — entries are private.</div>
+            </div>
+            <div><button className="btn-ghost">Export</button></div>
+          </div>
 
-    async function react(id,type){
-      try{
-        await api(`/community/${id}/react`,{method:"POST",body:{type}});
-        load();
-      }catch(err){console.error(err);}
-    }
-
-    return(
-      <div>
-        <div className="card mb-6">
-          <h3 className="font-semibold mb-2">Share your experience 🌍</h3>
-          <textarea className="input-styled mb-3" rows="3" placeholder="What's on your mind?" value={body} onChange={e=>setBody(e.target.value)}></textarea>
-          <button className="button-primary" onClick={submit} disabled={loading}>
-            {loading?"Posting...":"Post"}
-          </button>
+          <div style={{marginTop:12}}>
+            <textarea className="input-styled" rows="5" placeholder="Write your thoughts..." value={body} onChange={e=>setBody(e.target.value)}></textarea>
+            <div style={{display:"flex",justifyContent:"flex-end",marginTop:10}}>
+              <button className="button-primary" onClick={save}>Save entry</button>
+            </div>
+          </div>
         </div>
+
         <div>
-          <h3 className="font-semibold mb-2">Community Feed</h3>
-          {posts.length===0?<div className="muted">No posts yet. Be the first to share!</div>:posts.map(p=>(
-            <div key={p._id} className="post-card card">
-              <div className="post-header">
-                <span className="font-semibold">{p.userName||"Anonymous"}</span>
-                <span className="muted text-sm">{new Date(p.createdAt).toLocaleString()}</span>
+          <div className="muted" style={{marginBottom:8}}>Past entries</div>
+          {entries.length===0 ? <div className="card muted">No entries yet.</div> : entries.map(en=>(
+            <div key={en._id} className="card">
+              <div style={{display:"flex",justifyContent:"space-between"}}>
+                <div className="muted small">{new Date(en.createdAt).toLocaleString()}</div>
+                <div style={{fontWeight:700}}></div>
               </div>
-              <div className="post-body">{p.body}</div>
-              <div className="mt-4 flex gap-4">
-                <button className="react-btn" onClick={()=>react(p._id,"like")}>❤️ {p.reactions?.likes||0}</button>
-                <button className="react-btn" onClick={()=>react(p._id,"upvote")}>🔼 {p.reactions?.upvotes||0}</button>
-                <button className="react-btn" onClick={()=>react(p._id,"downvote")}>🔽 {p.reactions?.downvotes||0}</button>
-              </div>
+              <div style={{marginTop:10}}>{en.body}</div>
             </div>
           ))}
         </div>
@@ -187,40 +362,354 @@
     );
   }
 
-  function DashboardPage(){ return <div className="card"><h3 className="font-semibold mb-2">Welcome back 👋</h3><p>Check your wellness and continue with today’s activities.</p></div>; }
-  function JournalPage(){ return <div className="card">📖 Journal here...</div>; }
-  function QuizPage(){ return <div className="card">📝 Quiz here...</div>; }
-  function VoicePage(){ return <div className="card">🎙 Speak Out here...</div>; }
-  function SettingsPage(){ return <div className="card">⚙️ Settings</div>; }
+  // ---- Quiz (functional, dynamic, 6 questions) ----
+  function QuizPage({ onCompleted }){
+    const [session,setSession] = useState(null);
+    const [input,setInput] = useState("");
+    const [loading,setLoading] = useState(false);
 
+    async function start(){
+      try{
+        const s = await api("/quizzes/start",{method:"POST"});
+        setSession(s);
+      }catch(err){ alert("Start failed: "+err.message); }
+    }
+
+    async function sendAnswer(){
+      if(!input.trim()) return;
+      setLoading(true);
+      try{
+        const res = await api(`/quizzes/${session._id}/answer`,{method:"POST",body:{answer: input}});
+        setInput("");
+
+        if(res.crisis){
+          alert(res.message + "\n\n" + (res.resources || []).map(r => r.phone || r.url || r.name).join("\n"));
+          setSession({...session, isComplete:true});
+          setLoading(false);
+          return;
+        }
+
+        if(res.wellness){
+          // when completed backend returns { session, wellness }
+          setSession(res.session || session);
+          if(onCompleted) onCompleted(res.wellness);
+          alert(`Quiz complete — wellness ${res.wellness.score} (${res.wellness.category})`);
+        } else {
+          // intermediate: backend returns session
+          setSession(res);
+        }
+      }catch(err){
+        alert("Answer failed: "+err.message);
+      }
+      setLoading(false);
+    }
+
+    if(!session){
+      return (
+        <div className="card">
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+            <div>
+              <div className="title-lg">Daily Quiz</div>
+              <div className="muted small">Short adaptive check-in (6 q)</div>
+            </div>
+            <div>
+              <button className="button-primary" onClick={start}>Start Today's Quiz</button>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    const current = session.questions?.[session.currentStep] ?? null;
+    const progress = Math.min(session.currentStep, session.maxSteps || 6);
+
+    return (
+      <div className="card">
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+          <div>
+            <div className="title-lg">Daily Quiz</div>
+            <div className="muted small">Progress {progress}/{session.maxSteps || 6}</div>
+          </div>
+          <div style={{width:220}}>
+            <div style={{height:10,background:"rgba(15,23,42,0.06)",borderRadius:999,overflow:"hidden"}}>
+              <div style={{width: (progress/ (session.maxSteps||6))*100 + "%", height:"100%", background:"linear-gradient(90deg,var(--primary),var(--primary-2))"}}></div>
+            </div>
+          </div>
+        </div>
+
+        <div style={{marginTop:12}}>
+          <div className="muted small">Previous answers</div>
+          <div style={{marginTop:8}}>
+            {session.questions.map((q,i)=>(
+              <div key={q.qId} style={{padding:10, borderRadius:10, background:"rgba(15,23,42,0.02)", marginBottom:8}}>
+                <div style={{fontWeight:700}}>Q{i+1}: {q.text}</div>
+                <div className="muted small">{q.answer ? "→ " + q.answer : "—"}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {!session.isComplete && current && (
+          <div style={{marginTop:12}}>
+            <input className="input-styled" placeholder="Your answer..." value={input} onChange={e=>setInput(e.target.value)} />
+            <div style={{display:"flex",gap:10,marginTop:12}}>
+              <button className="button-primary" onClick={sendAnswer} disabled={loading || !input}>{loading? "Loading..." : "Next"}</button>
+              <button className="btn-ghost" onClick={()=>{ setSession(null); setInput(""); }}>Cancel</button>
+            </div>
+          </div>
+        )}
+
+        {session.isComplete && (
+          <div style={{marginTop:12,color:"#059669",fontWeight:700}}>🎉 Quiz Completed — check your dashboard for results.</div>
+        )}
+      </div>
+    );
+  }
+
+  // ---- VoicePage (functional) ----
+  function VoicePage(){
+    const [recording,setRecording] = useState(false);
+    const [mediaRecorder,setMediaRecorder] = useState(null);
+    const [audioURL,setAudioURL] = useState(null);
+    const [loading,setLoading] = useState(false);
+    const [transcript,setTranscript] = useState("");
+    const [suggestion,setSuggestion] = useState("");
+
+    async function startRecording(){
+      try{
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        const mr = new MediaRecorder(stream);
+        const chunks = [];
+        mr.ondataavailable = e => chunks.push(e.data);
+        mr.onstop = async () => {
+          const blob = new Blob(chunks, { type: "audio/webm" });
+          const url = URL.createObjectURL(blob);
+          setAudioURL(url);
+          await uploadAudio(blob);
+        };
+        mr.start();
+        setMediaRecorder(mr);
+        setRecording(true);
+      }catch(err){
+        alert("Microphone access denied or not available.");
+      }
+    }
+
+    function stopRecording(){
+      if(mediaRecorder){
+        mediaRecorder.stop();
+        setRecording(false);
+      }
+    }
+
+    async function uploadAudio(blob){
+      setLoading(true);
+      try{
+        const fd = new FormData();
+        fd.append("voice", blob, "speak.webm");
+        const res = await fetch(API + "/voice/speak", { method: "POST", body: fd, headers: getToken() ? { "Authorization": "Bearer " + getToken() } : {} });
+        const data = await res.json();
+        if(data.error) throw new Error(data.error);
+        setTranscript(data.transcript || "");
+        setSuggestion(data.suggestion || "");
+      }catch(err){ alert("Upload failed: "+ err.message); }
+      setLoading(false);
+    }
+
+    return (
+      <div className="card">
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+          <div>
+            <div className="title-lg">Speak Out</div>
+            <div className="muted small">Record and get a short, caring suggestion</div>
+          </div>
+          <div>
+            {!recording ? <button className="button-primary" onClick={startRecording}>Start Recording</button> : <button className="btn-ghost" onClick={stopRecording}>Stop</button>}
+          </div>
+        </div>
+
+        <div style={{marginTop:12}}>
+          {loading && <div className="muted">Processing — hang on...</div>}
+          {audioURL && <audio src={audioURL} controls style={{width:"100%",marginTop:12}}></audio>}
+          {transcript && (
+            <div style={{marginTop:12}} className="card">
+              <div style={{fontWeight:700}}>Transcript</div>
+              <div className="muted small" style={{marginTop:8}}>{transcript}</div>
+            </div>
+          )}
+          {suggestion && (
+            <div style={{marginTop:12}} className="card">
+              <div style={{fontWeight:800,color:"#065f46"}}>Suggestion</div>
+              <div style={{marginTop:8}}>{suggestion}</div>
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  // ---- Community (functional with reactions) ----
+  function CommunityPage(){
+  const [posts, setPosts] = useState([]);
+  const [body, setBody] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  async function load() { 
+    try { 
+      const res = await api("/community"); 
+      setPosts(res); 
+    } catch(err) { 
+      console.error(err); 
+    } 
+  }
+
+  useEffect(() => { load(); }, []);
+
+  async function submit() {
+    if (!body.trim()) return;
+    setLoading(true);
+    try {
+      const res = await api("/community", {
+        method: "POST",
+        body: { text: body }   // ✅ backend expects "text"
+      });
+      setBody("");
+      load();
+    } catch (err) {
+      alert("Post failed: " + err.message);
+    }
+    setLoading(false);
+  }
+
+  async function react(postId, type){
+    try { 
+      await api(`/community/${postId}/react`, { method:"POST", body:{ type } }); 
+      load(); 
+    } catch(err) { 
+      console.error(err); 
+      alert("React failed"); 
+    }
+  }
+
+  return (
+    <div>
+      <div className="card" style={{marginBottom:14}}>
+        <div style={{display:"flex",justifyContent:"space-between"}}>
+          <div>
+            <div className="title-lg">Community</div>
+            <div className="muted small">Share experiences & support each other</div>
+          </div>
+          <div><button className="btn-ghost">Guidelines</button></div>
+        </div>
+
+        <div style={{marginTop:12}}>
+          <textarea 
+            className="input-styled" 
+            rows="3" 
+            placeholder="Share something supportive or ask a question..." 
+            value={body} 
+            onChange={e=>setBody(e.target.value)}
+          ></textarea>
+          <div style={{display:"flex",justifyContent:"flex-end",marginTop:8}}>
+            <button 
+              className="button-primary" 
+              onClick={submit} 
+              disabled={loading}
+            >
+              {loading ? "Posting..." : "Post"}
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div>
+        {posts.length === 0 ? (
+          <div className="muted">No posts yet — be the first to share.</div>
+        ) : (
+          posts.map(p=>(
+            <article key={p._id} className="post-card">
+              <div className="post-meta">
+                <div style={{display:"flex",gap:12,alignItems:"center"}}>
+                  <div className="avatar" aria-hidden>
+                    {(p.userName || "U").slice(0,1)}
+                  </div>
+                  <div>
+                    <div style={{fontWeight:700}}>{p.userName || "Anonymous"}</div>
+                    <div className="muted small">
+                      {new Date(p.createdAt).toLocaleString()}
+                    </div>
+                  </div>
+                </div>
+
+                <div style={{display:"flex",gap:8,alignItems:"center"}}>
+                  <span className="pill small muted">{p.reactions?.likes || 0} ❤️</span>
+                  <span className="pill small muted">{p.reactions?.upvotes || 0} ▲</span>
+                </div>
+              </div>
+
+              <div style={{marginTop:10}} className="post-body">{p.text}</div> 
+              {/* ✅ use p.text because backend stores "text" */}
+
+              <div className="reactions">
+                <button className="react-btn" onClick={()=>react(p._id,"like")}>❤️ {p.reactions?.likes || 0}</button>
+                <button className="react-btn" onClick={()=>react(p._id,"upvote")}>🔼 {p.reactions?.upvotes || 0}</button>
+                <button className="react-btn" onClick={()=>react(p._id,"downvote")}>🔽 {p.reactions?.downvotes || 0}</button>
+              </div>
+            </article>
+          ))
+        )}
+      </div>
+    </div>
+  );
+}
+
+  // ---- Settings placeholder ----
+  function SettingsPage(){ return <div className="card"><div className="title-lg">Settings</div><div className="muted small" style={{marginTop:8}}>Coming soon</div></div>; }
+
+  // ---- Root App ----
   function App(){
-    const [auth,setAuth]=useState(Boolean(getToken()));
-    const [active,setActive]=useState("dashboard");
-    const [wellness,setWellness]=useState(null);
-    const [streak,setStreak]=useState(0);
+    const [auth,setAuth] = useState(Boolean(getToken()));
+    const [active,setActive] = useState("dashboard");
+    const [wellness,setWellness] = useState(null);
+    const [streak,setStreak] = useState(0);
 
     useEffect(()=>{
       if(auth){
         api("/dashboard").then(r=>{
-          setWellness(r.wellness);
-          setStreak(r.streakCount||0);
+          setWellness(r.wellness || null);
+          setStreak(r.streakCount || 0);
           if(!r.loggedToday){
             api("/dashboard/mark-login",{method:"POST"}).then(d=>{
-              setWellness(d.wellness); setStreak(d.streakCount); alert("🎉 Daily login complete!");
-            });
+              setWellness(d.wellness); setStreak(d.streakCount);
+              // friendly daily login toast
+              setTimeout(()=>alert("🎉 Daily login complete!"), 200);
+            }).catch(()=>{});
           }
-        }).catch(console.error);
+        }).catch(err => {
+          console.error("dashboard fetch", err);
+        });
       }
     },[auth]);
 
-    if(!auth) return <Login onLogin={()=>setAuth(true)}/>;
+    if(!auth) return <Login onLogin={()=>setAuth(true)} />;
 
-    const pages={dashboard:<DashboardPage/>,journal:<JournalPage/>,quiz:<QuizPage/>,voice:<VoicePage/>,community:<CommunityPage/>,settings:<SettingsPage/>};
+    const pages = {
+      dashboard: <DashboardPage />,
+      journal: <JournalPage />,
+      quiz: <QuizPage onCompleted={(w)=>setWellness(w)} />,
+      voice: <VoicePage />,
+      community: <CommunityPage />,
+      settings: <SettingsPage />
+    };
 
-    return <Layout onLogout={()=>{setToken(null);setAuth(false);}} active={active} setActive={setActive} wellness={wellness} streak={streak}>{pages[active]}</Layout>;
+    return (
+      <Layout active={active} setActive={setActive} wellness={wellness} streak={streak} onLogout={() => { setToken(null); setAuth(false); }}>
+        {pages[active]}
+      </Layout>
+    );
   }
 
-  ReactDOM.createRoot(document.getElementById("root")).render(<App/>);
+  ReactDOM.createRoot(document.getElementById("root")).render(<App />);
   </script>
 </body>
 </html>
