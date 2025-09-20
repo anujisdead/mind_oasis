@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Mind Oasis — Dashboard</title>
+
+  <!-- Tailwind + DaisyUI -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://cdn.jsdelivr.net/npm/daisyui@4.12.10/dist/full.css" rel="stylesheet"/>
+
+  <!-- React + Babel -->
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+  <style>
+    :root {
+      --primary-color: #6366f1;
+      --primary-hover: #4f46e5;
+      --bg-light: #F3F4F6;
+      --card-bg: #FFFFFF;
+      --card-shadow: 0 6px 20px rgba(0, 0, 0, 0.06);
+      --border-radius: 14px;
+      --transition-fast: 0.2s ease-in-out;
+    }
+
+    body { font-family: Inter, system-ui, sans-serif; background: var(--bg-light); color: #1F2937; }
+
+    .sidebar { width: 240px; background:white; border-right:1px solid #eee; }
+    .sidebar a { padding:12px 20px; margin-bottom:8px; font-weight:500; display:flex; align-items:center; gap:10px; border-radius:var(--border-radius); color:#4B5563; transition:background var(--transition-fast); }
+    .sidebar a.active, .sidebar a:hover { background:#EEF2FF; color:var(--primary-color); }
+
+    .card { background:var(--card-bg); border-radius:var(--border-radius); padding:20px; box-shadow:var(--card-shadow); transition:transform var(--transition-fast), box-shadow var(--transition-fast); }
+    .card:hover { transform: translateY(-2px); box-shadow: 0 10px 25px rgba(0,0,0,0.1); }
+
+    .muted { color:#6b7280; font-size:0.9rem; }
+
+    .button-primary { background: var(--primary-color); color:white; padding:0.75rem 1.5rem; border-radius:var(--border-radius); border:none; cursor:pointer; transition: background var(--transition-fast), box-shadow var(--transition-fast); box-shadow:0 4px 10px rgba(0,0,0,0.08); }
+    .button-primary:hover { background: var(--primary-hover); box-shadow:0 6px 16px rgba(0,0,0,0.12); }
+
+    .input-styled { width:100%; padding:0.75rem; border:1px solid #D1D5DB; border-radius:var(--border-radius); transition:border var(--transition-fast), box-shadow var(--transition-fast); }
+    .input-styled:focus { outline:none; border-color:var(--primary-color); box-shadow:0 0 0 4px rgba(99,102,241,0.2); }
+
+    .post-card { margin-bottom: 24px; }
+    .post-header { display:flex; align-items:center; justify-content:space-between; }
+    .post-body { margin-top:12px; line-height:1.5; }
+
+    .react-btn { background:none; border:none; cursor:pointer; font-size:1rem; display:inline-flex; align-items:center; gap:4px; transition:color var(--transition-fast); }
+    .react-btn:hover { color: var(--primary-color); }
+  </style>
+</head>
+<body>
+  <div id="root" class="h-screen flex"></div>
+
+  <script type="text/babel">
+  const { useState, useEffect } = React;
+  const API = "http://localhost:4000/api";
+
+  function getToken(){ return localStorage.getItem("moi_token"); }
+  function setToken(t){ t?localStorage.setItem("moi_token",t):localStorage.removeItem("moi_token"); }
+  async function api(path,{method="GET",body=null}={}) {
+    const headers = {}; if(getToken()) headers.Authorization="Bearer "+getToken();
+    if(body) headers["Content-Type"]="application/json";
+    const res=await fetch(API+path,{method,headers,body:body?JSON.stringify(body):null});
+    if(!res.ok) throw new Error(await res.text());
+    return res.json();
+  }
+
+  function Login({onLogin}){
+    const [email,setEmail]=useState(""),[pass,setPass]=useState(""),[mode,setMode]=useState("login"),[name,setName]=useState(""),[err,setErr]=useState(null);
+    async function submit(e){
+      e.preventDefault(); setErr(null);
+      try{
+        const res=await fetch(API+"/auth/"+(mode==="login"?"login":"signup"),{
+          method:"POST", headers:{"Content-Type":"application/json"},
+          body:JSON.stringify({email,password:pass,name})
+        });
+        const data=await res.json(); if(data.error) throw new Error(data.error);
+        setToken(data.token); onLogin(data.user);
+      }catch(err){setErr(err.message);}
+    }
+    return(
+      <div className="m-auto max-w-md card">
+        <h2 className="text-2xl font-bold mb-3">Mind Oasis</h2>
+        <form onSubmit={submit} className="space-y-3">
+          {mode==="signup"&&<input className="input-styled" placeholder="Name" value={name} onChange={e=>setName(e.target.value)}/>}
+          <input className="input-styled" placeholder="Email" value={email} onChange={e=>setEmail(e.target.value)}/>
+          <input type="password" className="input-styled" placeholder="Password" value={pass} onChange={e=>setPass(e.target.value)}/>
+          {err&&<div className="text-red-600">{err}</div>}
+          <button className="button-primary w-full">{mode==="login"?"Login":"Sign up"}</button>
+        </form>
+        <button className="mt-2 w-full text-sm text-gray-500" onClick={()=>setMode(mode==="login"?"signup":"login")}>
+          {mode==="login"?"Create account":"Already have an account?"}
+        </button>
+      </div>
+    );
+  }
+
+  function Layout({children,onLogout,active,setActive,wellness,streak}){
+    const navItems=[
+      {id:"dashboard",label:"Dashboard"}, {id:"journal",label:"Journal"},
+      {id:"quiz",label:"Quiz"}, {id:"voice",label:"Speak Out"},
+      {id:"community",label:"Community"}, {id:"settings",label:"Settings"}
+    ];
+    return(
+      <>
+      <aside className="sidebar p-4">
+        <h1 className="text-xl font-bold mb-6">🌿 Mind Oasis</h1>
+        {navItems.map(it=>(
+          <a key={it.id} href="#" className={active===it.id?"active":""} onClick={()=>setActive(it.id)}>{it.label}</a>
+        ))}
+        <button className="mt-8 text-gray-500" onClick={onLogout}>Logout</button>
+      </aside>
+      <main className="flex-1 flex flex-col">
+        <header className="flex justify-between items-center p-4 border-b bg-white">
+          <div className="text-lg font-semibold">{navItems.find(n=>n.id===active)?.label}</div>
+          <div className="flex gap-4">
+            <div className="card flex items-center gap-2">
+              <div className="font-bold">{wellness?.score ?? "—"}/100</div>
+              <div className="muted">{wellness?.category}</div>
+            </div>
+            <div className="card flex items-center gap-2">
+              <span>🔥</span>
+              <div>
+                <div className="font-bold">{streak??0}</div>
+                <div className="muted text-sm">Day streak</div>
+              </div>
+            </div>
+          </div>
+        </header>
+        <div className="flex-1 p-6 overflow-y-auto bg-[#f7f7fb]">{children}</div>
+      </main>
+      </>
+    );
+  }
+
+  function CommunityPage(){
+    const [body,setBody]=useState(""),[posts,setPosts]=useState([]),[loading,setLoading]=useState(false);
+
+    async function load(){ try{setPosts(await api("/community"));}catch(err){console.error(err);} }
+    useEffect(()=>{load();},[]);
+
+    async function submit(){
+      if(!body.trim()) return;
+      setLoading(true);
+      try{
+        await api("/community",{method:"POST",body:{body}});
+        setBody(""); load();
+      }catch(err){alert("Failed to post: "+err);}
+      setLoading(false);
+    }
+
+    async function react(id,type){
+      try{
+        await api(`/community/${id}/react`,{method:"POST",body:{type}});
+        load();
+      }catch(err){console.error(err);}
+    }
+
+    return(
+      <div>
+        <div className="card mb-6">
+          <h3 className="font-semibold mb-2">Share your experience 🌍</h3>
+          <textarea className="input-styled mb-3" rows="3" placeholder="What's on your mind?" value={body} onChange={e=>setBody(e.target.value)}></textarea>
+          <button className="button-primary" onClick={submit} disabled={loading}>
+            {loading?"Posting...":"Post"}
+          </button>
+        </div>
+        <div>
+          <h3 className="font-semibold mb-2">Community Feed</h3>
+          {posts.length===0?<div className="muted">No posts yet. Be the first to share!</div>:posts.map(p=>(
+            <div key={p._id} className="post-card card">
+              <div className="post-header">
+                <span className="font-semibold">{p.userName||"Anonymous"}</span>
+                <span className="muted text-sm">{new Date(p.createdAt).toLocaleString()}</span>
+              </div>
+              <div className="post-body">{p.body}</div>
+              <div className="mt-4 flex gap-4">
+                <button className="react-btn" onClick={()=>react(p._id,"like")}>❤️ {p.reactions?.likes||0}</button>
+                <button className="react-btn" onClick={()=>react(p._id,"upvote")}>🔼 {p.reactions?.upvotes||0}</button>
+                <button className="react-btn" onClick={()=>react(p._id,"downvote")}>🔽 {p.reactions?.downvotes||0}</button>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  function DashboardPage(){ return <div className="card"><h3 className="font-semibold mb-2">Welcome back 👋</h3><p>Check your wellness and continue with today’s activities.</p></div>; }
+  function JournalPage(){ return <div className="card">📖 Journal here...</div>; }
+  function QuizPage(){ return <div className="card">📝 Quiz here...</div>; }
+  function VoicePage(){ return <div className="card">🎙 Speak Out here...</div>; }
+  function SettingsPage(){ return <div className="card">⚙️ Settings</div>; }
+
+  function App(){
+    const [auth,setAuth]=useState(Boolean(getToken()));
+    const [active,setActive]=useState("dashboard");
+    const [wellness,setWellness]=useState(null);
+    const [streak,setStreak]=useState(0);
+
+    useEffect(()=>{
+      if(auth){
+        api("/dashboard").then(r=>{
+          setWellness(r.wellness);
+          setStreak(r.streakCount||0);
+          if(!r.loggedToday){
+            api("/dashboard/mark-login",{method:"POST"}).then(d=>{
+              setWellness(d.wellness); setStreak(d.streakCount); alert("🎉 Daily login complete!");
+            });
+          }
+        }).catch(console.error);
+      }
+    },[auth]);
+
+    if(!auth) return <Login onLogin={()=>setAuth(true)}/>;
+
+    const pages={dashboard:<DashboardPage/>,journal:<JournalPage/>,quiz:<QuizPage/>,voice:<VoicePage/>,community:<CommunityPage/>,settings:<SettingsPage/>};
+
+    return <Layout onLogout={()=>{setToken(null);setAuth(false);}} active={active} setActive={setActive} wellness={wellness} streak={streak}>{pages[active]}</Layout>;
+  }
+
+  ReactDOM.createRoot(document.getElementById("root")).render(<App/>);
+  </script>
+</body>
+</html>
