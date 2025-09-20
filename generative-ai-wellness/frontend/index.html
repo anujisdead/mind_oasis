@@ -668,46 +668,68 @@
 
   // ---- Root App ----
   function App(){
-    const [auth,setAuth] = useState(Boolean(getToken()));
-    const [active,setActive] = useState("dashboard");
-    const [wellness,setWellness] = useState(null);
-    const [streak,setStreak] = useState(0);
+  const [auth,setAuth] = useState(Boolean(getToken()));
+  const [user,setUser] = useState(null);
+  const [active,setActive] = useState("dashboard");
+  const [wellness,setWellness] = useState(null);
+  const [streak,setStreak] = useState(0);
 
-    useEffect(()=>{
-      if(auth){
-        api("/dashboard").then(r=>{
-          setWellness(r.wellness || null);
-          setStreak(r.streakCount || 0);
-          if(!r.loggedToday){
-            api("/dashboard/mark-login",{method:"POST"}).then(d=>{
-              setWellness(d.wellness); setStreak(d.streakCount);
-              // friendly daily login toast
-              setTimeout(()=>alert("🎉 Daily login complete!"), 200);
-            }).catch(()=>{});
-          }
-        }).catch(err => {
-          console.error("dashboard fetch", err);
-        });
-      }
-    },[auth]);
+  // fetch dashboard data if authenticated
+  useEffect(()=>{
+    if(auth){
+      api("/dashboard").then(r=>{
+        setWellness(r.wellness || null);
+        setStreak(r.streakCount || 0);
+        if(!r.loggedToday){
+          api("/dashboard/mark-login",{method:"POST"}).then(d=>{
+            setWellness(d.wellness);
+            setStreak(d.streakCount);
+            setTimeout(()=>alert("🎉 Daily login complete!"),200);
+          }).catch(()=>{});
+        }
+      }).catch(err=>{
+        console.error("dashboard fetch", err);
+        // if token invalid → logout
+        setToken(null);
+        setAuth(false);
+      });
+    }
+  },[auth]);
 
-    if(!auth) return <Login onLogin={()=>setAuth(true)} />;
-
-    const pages = {
-      dashboard: <DashboardPage />,
-      journal: <JournalPage />,
-      quiz: <QuizPage onCompleted={(w)=>setWellness(w)} />,
-      voice: <VoicePage />,
-      community: <CommunityPage />,
-      settings: <SettingsPage />
-    };
-
-    return (
-      <Layout active={active} setActive={setActive} wellness={wellness} streak={streak} onLogout={() => { setToken(null); setAuth(false); }}>
-        {pages[active]}
-      </Layout>
-    );
+  if(!auth) {
+    return <Login onLogin={(u)=>{ 
+      setUser(u); 
+      setAuth(true); 
+      setActive("dashboard");   // 👈 force redirect to dashboard
+    }} />;
   }
+
+  const pages = {
+    dashboard: <DashboardPage />,
+    journal: <JournalPage />,
+    quiz: <QuizPage onCompleted={(w)=>setWellness(w)} />,
+    voice: <VoicePage />,
+    community: <CommunityPage />,
+    settings: <SettingsPage />
+  };
+
+  return (
+    <Layout 
+      active={active} 
+      setActive={setActive} 
+      wellness={wellness} 
+      streak={streak} 
+      onLogout={()=>{
+        setToken(null); 
+        setAuth(false); 
+        setUser(null); 
+      }}
+    >
+      {pages[active]}
+    </Layout>
+  );
+}
+
 
   ReactDOM.createRoot(document.getElementById("root")).render(<App />);
   </script>
