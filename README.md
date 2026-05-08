@@ -701,4 +701,8 @@ This project is open source. See the repository for license details.
 
 <p align="center">
   Made with ❤️ for youth mental wellness
+<<<<<<< HEAD
 </p>
+=======
+</p>
+>>>>>>> c398ec1 (updated readme)
