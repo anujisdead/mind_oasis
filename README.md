@@ -2,7 +2,7 @@
 
 A modern, AI-powered mental wellness platform designed for students and young adults. Mind Oasis provides personalized wellness checks, adaptive daily quizzes, journaling tools, voice analysis, and community features—all powered by generative AI for intelligent, supportive insights.
 
-**Live Demo:** https://mind-oasis-beryl.vercel.app
+
 
 ---
 
